@@ -1,58 +1,27 @@
-## Function to calculate weighted means for species specific size bins for NCRMP and DRM  data
-# Purpose:
-# creates csv files with weighted means for species specific size bins
-## Tag: data analysis
-# outputs created in this file --------------
-# size_3d_demos
-# length_demos
-# size_estimates
-# length_estimates
-# size_domain_est
-# length_domain_est
-# length_freq_estimates
-# length_freq_domain_est
-# domain_mort_spp
-# strat_mort
-# CallS:
-# analysis ready data
-# output gets called by:
-# Analysis Rmarkdown, etc.
-#
-# NCRMP Caribbean Benthic analytics team: Davis, Groves, Viehman, Williams, Krampitz
-# Last update: Jan 2024
-##############################################################################################################################
-#' Outputs the strata and domain estimates for 3D surface area and length
-#'
-#' Creates regional weighted densities at size (3D surface and length),
-#' as well as regional weighted relative length frequencies from NCRMP coral
-#' demographic data. NCRMP utilizes a stratified random
-#' sampling design. Regional estimates are weighted by the number of
-#' grid cells of a stratum in the sample frame. For coral size data, weighting
-#' is done only by strata where species is present.
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#' @param project A string indicating the project, NCRMP or NCRMP and DRM combined ("NCRMP_DRM").
-#' @param region A string indicating the region.  Options are: "SEFCRI", "FLK", "Tortugas", "STX", "STTSTJ", "PRICO", and "GOM".
-#' @param years A concatenation of numerics indicating the two years to compare. Must be NCRMP sampling years if project = "NCRMP".
-#' @param size_bin_count A number indicating the desired number of bins for 3d surface area.
-#' As function is currently set up, this is not used.
-#' @param length_bin_count A number indicating the desired number of bins for length.
-#' As function is currently set up, this is not used.
-#' @param species_filter A concatenated string indicating whether to filter to a subset of species
-#' @return A list of dataframes.
-#' @importFrom magrittr "%>%"
-#' @importFrom dplyr "case_when"
-#' @export
-#'
-#'
-#Inputs: Region, Project (only NCRMP at this time), the years selected,
-## and inputs for the 3D surface area bin count and Length bin count
-NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, length_bin_count = 10,species_filter = NULL) {
+NCRMP_make_size_bins <- function(region , project, years,
+                                 size_bin_count = 10, length_bin_count = 10,
+                                 species_filter = NULL) {
+
+  analyzed_species <- c(
+    #"ACR CERV" #A. cervicornis
+    #"ACR PALM", #A. palmata
+    #"ORB ANNU", #O. annularis
+    #"ORB FRAN", #O. franksi
+    #"ORB FAVE", #O. faveolata
+    "MEA MEAN" #M. meandrites
+    #"DEN CYLI", #D. cylindrus
+    #"PSE STRI", #A. cervicornis
+    #"DIP LABY", #D. labyrinthiformis
+    #"COL NATA", #C. natans
+    #"SID SIDE", #S. siderea
+    #"POR ASTR", #P. astreoides
+    #"MON CAVE", #M. cavernosa
+    #"AGA AGAR", #A. agaricites
+    #"MAD AURE", #M. auretenra
+    #"STE INTE" #S. inercepta
+  )
+
+
 
   #p - a constant for 3d surface area calculation
   p = 1.6
@@ -62,14 +31,19 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
   demos <- load_NCRMP_DRM_demo_data(project = project, region = region)
 
 
-
   if(project == "NCRMP" && region %in% c("FLK", "PRICO", "STTSTJ", "STX", "GOM")){
     #These regions only have dat_1stage needed
-    demos <- demos$dat_1stage %>%  dplyr::filter(YEAR %in% years)
+    demos <- demos$dat_1stage %>%
+      dplyr::filter(YEAR %in% years)
   }
 
+  if(project == "NCRMP_DRM" | region %in% c("SEFCRI", "Tortugas")){
 
-  if(region == "SEFCRI" && project == "NCRMP"){
+    # with 2 stage data (NCRMP+DRM and SEFCRI 2014, Tortugas 2018 and 2020)
+    # need to randomly select one transect to use
+
+    if(region == "SEFCRI"){
+      if(project == "NCRMP"){
         # 1 stage demo data
         tmp1 <- demos$dat_1stage
         # load subsetted version of 2 stage data
@@ -77,10 +51,8 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
         # combine with actual 1 stage data
         demos <- dplyr::bind_rows(tmp1, tmp2) %>%
           dplyr::filter(YEAR %in% years)
-  }
-
-
-  if(region == "SEFCRI"&& project == "NCRMP_DRM"){
+      }
+      if(project == "NCRMP_DRM"){
         # 1 stage demo data
         tmp1 <- demos$dat_1stage %>% dplyr::mutate(PRIMARY_SAMPLE_UNIT = as.character(PRIMARY_SAMPLE_UNIT))
         # load subsetted versions of 2 stage data
@@ -89,8 +61,8 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
         # combine with actual 1 stage data
         demos <- dplyr::bind_rows(tmp1, tmp2) %>%
           dplyr::filter(YEAR %in% years)
-  }
-
+      }
+    }
 
     if(region == "Tortugas"){
       if(project == "NCRMP"){
@@ -125,26 +97,22 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
       demos <- dplyr::bind_rows(tmp1, tmp2) %>%
         dplyr::filter(YEAR %in% years)
     }
+
   }
-
-
-
-
-
-
-
-
-
 
 
   if (!is.null(species_filter)) {
+
     demos <- demos %>%
       dplyr::filter(SPECIES_CD %in% analyzed_species)
   }
+
   demos <- demos %>%
     dplyr::mutate(LAT_DEGREES = sprintf("%0.4f", LAT_DEGREES),
                   LON_DEGREES = sprintf("%0.4f", LON_DEGREES),
                   PROT = as.factor(PROT))
+
+
 
   #Length Calculation
   length_demos <- demos %>%
@@ -187,7 +155,9 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                                       MAX_DIAMETER >=106 ~ 11,
                                       TRUE ~ NA_real_))
 
+
   length_demos_raw <- length_demos
+
   length_demos <- length_demos %>%
     #summarize findings by bin count
     dplyr::group_by(SPECIES_NAME, SPECIES_CD, REGION, YEAR, PRIMARY_SAMPLE_UNIT,
@@ -195,8 +165,12 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
     dplyr::summarise(bin_tally = dplyr::n(), .groups = "keep") %>%
     dplyr::arrange(SPECIES_NAME, YEAR, PRIMARY_SAMPLE_UNIT, STRAT, PROT,
                    bin_num)
+
+
   #CALCULATE ESTIMATES
+
   if (region %in% c("FLK", "SEFCRI", "Tortugas")) {
+
 
     #Estimates for Length
     length_estimates <- length_demos %>%
@@ -218,6 +192,9 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                     std = sqrt(svar), # std dev of bin_tally in stratum
                     SE=sqrt(Var), #SE of the mean bin_tally stratum
                     CV_perc=(SE/avtally)*100)
+    print("length_estimates")
+    print(length_estimates)
+
     # Estimates for RELATIVE Length Frequency (ADDED OCT 2022 by BW)
     # first sum up the total number of corals of each species, by strat
     tot_corals <- length_demos %>%
@@ -225,6 +202,10 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                                              sep = " ")) %>%
       dplyr::group_by(REGION, YEAR, ANALYSIS_STRATUM, SPECIES_NAME, SPECIES_CD) %>%
       dplyr::summarize(tot_corals = sum(bin_tally))
+
+    print("tot_corals")
+    print(tot_corals)
+
     length_freq_estimates <- length_demos %>%
       dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT,
                                              sep = " ")) %>%
@@ -237,6 +218,11 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
       dplyr::left_join(., tot_corals, by = c("REGION", "YEAR", "ANALYSIS_STRATUM", "SPECIES_NAME", "SPECIES_CD")) %>%
       # calculate relative frequency (proportion) of corals in each size bin
       dplyr::mutate(length_freq = n_corals/tot_corals)
+
+    print("length_freq_est")
+    print(length_freq_estimates)
+
+
     # mortality estimates
     avgmort_site <- length_demos_raw %>%
       dplyr::mutate(ANALYSIS_STRATUM = paste(STRAT, "/ PROT =", PROT, sep = " ")) %>%
@@ -244,6 +230,11 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                       STRAT, PROT, ANALYSIS_STRATUM, bin_num, bin_name) %>%
       dplyr::summarize(avsitemort_old = mean(OLD_MORT/100),
                        avsitemort_rec = mean(RECENT_MORT/100))
+
+    print("avgmort")
+    print(avgmort_site)
+
+
     strat_mort <- avgmort_site %>%
       dplyr::mutate(PROT = as.factor(PROT)) %>%
       dplyr::ungroup() %>%
@@ -267,13 +258,22 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                     std_rec = sqrt(svar_rec), # std dev of density in stratum
                     SE_rec=sqrt(Var_rec), #SE of the mean density in stratum
                     CV_perc_rec=(SE_rec/avmort_rec)*100)
+
+
+    print(" strat_mort")
+    print( strat_mort)
+
     ntot <- load_NTOT(region = region, inputdata = demos,
                       project = project) %>%
       dplyr::mutate(YEAR = as.factor(YEAR)) %>%
       dplyr::filter(YEAR %in% years) %>%
       dplyr::ungroup()
   }
+
   if (region %in% c("PRICO", "STTSTJ", "STX", "GOM")) {
+
+
+
 
     #Estimates for Length
     length_estimates <- length_demos %>%
@@ -294,12 +294,15 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                     std = sqrt(svar), # std dev of bin_tally in stratum
                     SE=sqrt(Var), #SE of the mean bin_tally stratum
                     CV_perc=(SE/avtally)*100)
+
+
     # Estimates for RELATIVE Length Frequency (ADDED OCT 2022 by BW)
     # first sum up the total number of corals of each species, by strat
     tot_corals <- length_demos %>%
       dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
       dplyr::group_by(REGION, YEAR, ANALYSIS_STRATUM, SPECIES_NAME, SPECIES_CD) %>%
       dplyr::summarize(tot_corals = sum(bin_tally))
+
     length_freq_estimates <- length_demos %>%
       dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
       dplyr::group_by(REGION, YEAR, ANALYSIS_STRATUM, SPECIES_NAME, SPECIES_CD,
@@ -311,6 +314,7 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
       dplyr::left_join(., tot_corals, by = c("REGION", "YEAR", "ANALYSIS_STRATUM", "SPECIES_NAME", "SPECIES_CD")) %>%
       # calculate relative frequency (proportion) of corals in each size bin
       dplyr::mutate(length_freq = n_corals/tot_corals)
+
     # mortality estimates
     avgmort_site <- length_demos_raw %>%
       dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
@@ -318,7 +322,9 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                       STRAT, PROT, ANALYSIS_STRATUM, bin_num, bin_name) %>%
       dplyr::summarize(avsitemort_old = mean(OLD_MORT/100),
                        avsitemort_rec = mean(RECENT_MORT/100))
+
     strat_mort <- avgmort_site %>%
+      dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
       dplyr::mutate(PROT = as.factor(PROT)) %>%
       dplyr::ungroup() %>%
       dplyr::group_by(REGION, YEAR, STRAT, PROT, SPECIES_NAME, SPECIES_CD, bin_num, bin_name) %>%
@@ -341,13 +347,16 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                     std_rec = sqrt(svar_rec), # std dev of density in stratum
                     SE_rec=sqrt(Var_rec), #SE of the mean density in stratum
                     CV_perc_rec=(SE_rec/avmort_rec)*100)
+
     #inputdata is dummy, unused if project != DRM
     ntot <- load_NTOT(region = region, inputdata = demos,
                       project = project) %>%
+      dplyr::mutate(ANALYSIS_STRATUM = STRAT) %>%
       dplyr::mutate(YEAR = as.factor(YEAR)) %>%
       dplyr::filter(YEAR %in% years) %>%
       dplyr::ungroup()
   }
+
 
   length_estimates_wh <- length_estimates  %>%
     # Merge ntot with coral_est_spp
@@ -359,12 +368,19 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                   n_sites = tidyr::replace_na(n_sites, 0))  %>%
     dplyr::ungroup() %>%
     dplyr::filter(!is.na(SPECIES_NAME))
+  print("length_estimates_wh")
+  print(length_estimates_wh)
+
   # For relative length frequencies, we need to re-weight ntot's because species aren't present in every strat
   # Strata are here re-weighted for each species,
   # based on the strata they are present in only
   length_freq_estimates_wh <- length_freq_estimates %>%
     # merge ntot with relative length frequency
     dplyr::full_join(ntot)
+
+  print("length_freq_estimates_wh")
+  print(length_freq_estimates_wh)
+
   # calculate NTOTs for each species, based on only strata they're present in
   ntot_spp <- length_freq_estimates_wh %>%
     dplyr::ungroup() %>%
@@ -372,24 +388,42 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
     dplyr::distinct() %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, SPECIES_CD) %>%
     dplyr::summarize(ngrtot_spp = sum(NTOT))
+
+  print("ntot_spp")
+  print(ntot_spp)
+
   # add new ntots, specific to species, to length frequency estimates and re weight
   length_freq_estimates <- length_freq_estimates_wh %>%
-    dplyr::full_join(ntot_spp, by = c("REGION", "YEAR", "SPECIES_NAME", "SPECIES_CD")) %>%
+    dplyr::full_join(ntot_spp) %>%
     # calculate new species specific weights
     dplyr::mutate(wh_new = NTOT/ngrtot_spp) %>%
     # stratum estimates
     dplyr::mutate(wh_length_freq = wh_new * length_freq)
 
+  print("length_freq_estimates")
+  print(length_freq_estimates)
+
+  # species and size bin specific NTOT (for mortality estimates)
   ntot_spp_bin <- strat_mort %>%
     # bring in the new ntot
-    dplyr::full_join(ntot, by=c("REGION", "YEAR", "STRAT")) %>%
-    dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, SPECIES_NAME, SPECIES_CD, bin_num, bin_name, NTOT, ngrtot, wh) %>%
+    dplyr::full_join(ntot)
+  print("ntot_spp_bin1")
+  print(ntot_spp_bin)
+
+  ntot_spp_bin <- ntot_spp_bin %>%
+    dplyr::select(REGION, YEAR, ANALYSIS_STRATUM, SPECIES_NAME, SPECIES_CD, bin_num, bin_name, NTOT, ngrtot, wh)
+  print("ntot_spp_bin2")
+  print(ntot_spp_bin)
+  ntot_spp_bin <- ntot_spp_bin %>%
     dplyr::distinct() %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, SPECIES_CD, bin_num, bin_name) %>%
     dplyr::summarize(ngrtot_spp = sum(NTOT))
+  print("ntot_spp_bin3")
+  print(ntot_spp_bin)
+
   strat_mort_wh_spp <- strat_mort %>%
     # bring in the new ntot
-    dplyr::full_join(ntot, by=c("REGION", "YEAR", "STRAT")) %>%
+    dplyr::full_join(ntot) %>%
     dplyr::full_join(., ntot_spp_bin, by = c("REGION", "YEAR", "SPECIES_NAME", "SPECIES_CD", "bin_num", "bin_name")) %>%
     dplyr::mutate(wh_new = NTOT/ngrtot_spp) %>%
     # stratum estimates
@@ -397,12 +431,14 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
                   whavmort_rec = wh_new * avmort_rec,
                   whvar_old = wh^2 * Var_old,
                   whvar_rec = wh^2 * Var_rec)
-  #End result: Return the list made up of strata est. and domain est.
+
+  print("strat_mort_wh_spp")
+  print(strat_mort_wh_spp)
 
 
-  ####Length Domain####
+
+  ##Length Domain
   length_domain_est <- length_estimates_wh %>%
-
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, SPECIES_CD, bin_num, bin_name) %>%
     dplyr::summarise(avtally = sum(whavtally, na.rm = T), # This accounts for strata with 0 species of interest present
                      Var_tally = sum(whsvar, na.rm = T),
@@ -414,6 +450,10 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
     dplyr::ungroup() %>%
     dplyr::arrange(SPECIES_CD, bin_num, YEAR)
 
+  print("length_domain_est")
+  print(length_domain_est)
+
+
   ## Relative Length Freq Domain
   length_freq_domain_est <- length_freq_estimates %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, SPECIES_CD, bin_num, bin_name) %>%
@@ -422,16 +462,24 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
     dplyr::ungroup() %>%
     dplyr::arrange(SPECIES_CD, bin_num, YEAR)
 
+  print("length_freq_domain_est")
+  print(length_freq_domain_est)
+
   ## Mortality by bin Domain
   domain_mort_spp <- strat_mort_wh_spp %>%
     dplyr::group_by(REGION, YEAR, SPECIES_NAME, SPECIES_CD, bin_num, bin_name) %>%
     dplyr::summarize(oldmort_domain = sum(whavmort_old, na.rm = T),
                      recmort_domain = sum(whavmort_rec, na.rm = T),
                      n_strat = length(unique(ANALYSIS_STRATUM)))
+  print("domain_mort_spp")
+  print(domain_mort_spp)
 
-  output <- list(
+  # Note - removed 3D size outputs in Jan. 2024
+  output <- list(#size_3d_demos = as.data.frame(size_3d_demos),
     length_demos = as.data.frame(length_demos),
+    #size_estimates = as.data.frame(size_estimates),
     length_estimates = as.data.frame(length_estimates),
+    #size_domain_est = as.data.frame(size_domain_est),
     length_domain_est = as.data.frame(length_domain_est),
     length_freq_estimates = as.data.frame(length_freq_estimates),
     length_freq_domain_est = as.data.frame(length_freq_domain_est),
@@ -441,7 +489,3 @@ NCRMP_make_size_bins <- function(region, project, years,size_bin_count = 10, len
 
   return(output)
 }
-
-#code start at 450 lines
-r <- NCRMP_make_size_bins(region = "SEFCRI", project = "NCRMP", years = 2022,size_bin_count = 10, length_bin_count = 10,species_filter = NULL)
-print(r)
