@@ -42,7 +42,7 @@
 #' @export
 #'
 #'
-updated_load_NTOT <- function(region, inputdata, project){
+load_NTOT <- function(region, inputdata, project){
 
 
   #### Helper Functions ####

@@ -372,4 +372,10 @@ NCRMP_calculate_cover <- function(region, project = "NULL"){
     )
 
     return(output)
-  }
+}
+
+
+
+r <- NCRMP_calculate_cover(region = "GOM", project = "NCRMP")
+print(r)
+

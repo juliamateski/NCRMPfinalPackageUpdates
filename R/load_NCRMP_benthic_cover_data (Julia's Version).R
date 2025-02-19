@@ -50,6 +50,7 @@ updated_load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
     stop("Invalid region value")
   }
 
+
   #### Data Processing Mission Iconic Reef ####
   if (project == "MIR") {
 
@@ -63,6 +64,7 @@ updated_load_NCRMP_benthic_cover_data <- function(project = "NULL", region) {
       ) %>%
       dplyr::filter(!is.na(MAPGRID_NR), !is.na(MIR_zone))
   } # end MIR
+
 
   #### Data Processing Southeast Florida NCRMP/Null Project ####
   if ((project == "NCRMP" || project == "NULL") && region == "SEFCRI") {
