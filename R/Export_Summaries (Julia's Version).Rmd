@@ -11,7 +11,7 @@ library(magrittr)
 library(ncrmp.benthics.analysis)
 library(devtools)
 ```
-
+#### set working directory
 ```{r}
 #user sets working directory
 wd = "/Users/juliamateski/Downloads/NCRMPfinalPackageUpdates/"
@@ -30,7 +30,7 @@ usethis::proj_get()
 
 ```
 
-# Load new NTOT files, old strata, calculated from 50m grids
+#### Load new NTOT files, old strata, calculated from 50m grids
 ```{r}
 # SEFL_2014_NTOT <- read.csv("K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\FL\\NCRMP\\NTOTs\\ntot_sefcri2014.csv") %>%
 #   dplyr::select(-STAGE_LEVEL)
@@ -83,34 +83,43 @@ use_data(Tort_2014_NTOT,  overwrite = TRUE)
 usethis::use_data(FGBNMS_boundary, overwrite = TRUE)
 ```
 
-#### Coral Density
-
+#### file names
 ```{r}
-
 species_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics"
 site_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics"
 strata_level_metrics <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics"
 domain_est <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates"
 
+fig_path <- "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures"
+CV_path <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV"
 
+invert <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Invertebrates"
+
+
+```
+
+#### Coral Density
+
+```{r}
 
 coral_density <- function(region, project, species_filter = FALSE, start_year, end_year ){
   
   call_data <- NCRMP_DRM_calculate_colony_density(project = project, region = region, species_filter = species_filter)
   
+    prep_csv <- function(dataset_name_string, dataset, location){
+    
   if(region == "Tortugas"){ region = "Tort"}
   
   if(region == "GOM"){ region = "FGBNMS"}
-
-  prep_csv <- function(dataset_name_string, dataset, location){
+    
     file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
     assign(file_name, value = dataset, envir = .GlobalEnv)
     make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
     write_csv(get(file_name), make_data_path)
     final_data <- get(file_name)
     usethis::use_data(final_data, overwrite = TRUE)
-  }
-  
+    }
+    
   prep_csv("density_species", call_data$density_species, species_level_metrics)  
   prep_csv("density_site", call_data$density_site, site_level_metrics)  
   prep_csv("density_strata", call_data$density_strata, strata_level_metrics)  
@@ -143,314 +152,11 @@ coral_density(region = "STTSTJ", project = "NCRMP", species_filter = FALSE, star
 ```{r}
 coral_density(region = "GOM", project = "NCRMP", species_filter = FALSE, start_year = 2013, end_year =23 )
 ```
-```{r}
-NCRMP_DRM_colony_density_CV_and_occurrence <- function(region, ptitle, year, file_path = "NULL", species_filter = "NULL", project){
-  #############
-  # coral species used in allocation, updated for USVI/PR 2023
-  #############
-  if (species_filter == TRUE) {
-    if(region == "STTSTJ") {
-      coral_species <- c("Colpophyllia natans", "Diploria labyrinthiformis", "Madracis decactis", "Meandrina meandrites","Montastraea cavernosa", "Orbicella annularis", "Orbicella faveolata", "Pseudodiploria strigosa", "Siderastrea siderea")
-    } else if (region == "STX") {
-      coral_species <- c("Colpophyllia natans", "Dichocoenia stokesii", "Madracis decactis", "Montastraea cavernosa", "Orbicella annularis", "Orbicella franksi", "Pseudodiploria strigosa")
-    } else if (region == "PRICO") {
-      coral_species <- c("Colpophyllia natans", "Diploria labyrinthiformis", "Madracis decactis", "Meandrina meandrites","Montastraea cavernosa", "Orbicella annularis", "Orbicella faveolata", "Orbicella franksi", "Pseudodiploria strigosa")
-    } else if (region == "FLK") {
-      coral_species <- c("Colpophyllia natans", "Montastraea cavernosa", "Orbicella faveolata", "Porites astreoides", "Siderastrea siderea", "Solenastrea bournoni")
-    } else if (region == "Tortugas") {
-      coral_species <- c("Colpophyllia natans", "Montastraea cavernosa", "Orbicella faveolata", "Porites astreoides", "Orbicella franksi", "Stephanocoenia intersepta")
-    } else if (region == "SEFCRI") {
-      coral_species <- c("Acropora cervicornis", "Dichocoenia stokesii", "Montastraea cavernosa", "Porites astreoides", "Pseudodiploria strigosa", "Siderastrea siderea")
-    }
-  }
-  if(region == "FLK" && project == "NCRMP") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_FLK_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "FLK" && project == "NCRMP_DRM") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_DRM_FLK_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "FLK" && project == "MIR") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = MIR_2022_density_species_DUMMY,
-                                                        project = project)
-  } else if (region == "Tortugas" && project == "NCRMP") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_Tort_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "Tortugas" && project == "NCRMP_DRM") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_DRM_Tort_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "SEFCRI" && project == "NCRMP") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_SEFCRI_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "SEFCRI" && project == "NCRMP_DRM") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_DRM_SEFCRI_2014_22_density_species,
-                                                        project = project)
-  } else if (region == "PRICO") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_PRICO_2014_23_density_species,
-                                                        project = project)
-  } else if (region == "STTSTJ") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_STTSTJ_2013_23_density_species,
-                                                        project = project)
-  } else if (region == "STX") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_STX_2015_23_density_species,
-                                                        project = project)
-  } else if (region == "GOM") {
-    region_means <- NCRMP_make_weighted_density_CV_data(region = region,
-                                                        sppdens = NCRMP_FGBNMS_2013_24_density_species,
-                                                        project = project)
-  }
-  if (species_filter == TRUE) {
-    region_means <- region_means %>% dplyr::filter(SPECIES_CD %in% coral_species)
-  }
-  if(region == "STX" || region == "STTSTJ" || region == "PRICO" || region == "GOM") {
-    # Create plot pieces to export
-    g.mid <- region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.011) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      # plot
-      ggplot(.,
-             aes(x = 1,
-                 y = reorder(SPECIES_CD, occurrence)))+
-      geom_text(aes(label = SPECIES_CD),
-                size = 3,
-                fontface = "italic") +
-      geom_segment(aes(x = 0.94,
-                       xend = 0.96,
-                       yend = SPECIES_CD))+
-      geom_segment(aes(x = 1.04,
-                       xend = 1.065,
-                       yend = SPECIES_CD))+
-      ggtitle(ptitle) +
-      ylab(NULL) +
-      scale_x_continuous(expand = c(0,0),
-                         limits = c(0.94, 1.065))+
-      theme(axis.title = element_blank(),
-            panel.grid = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            panel.background = element_blank(),
-            axis.text.x = element_text(color = NA),
-            axis.ticks.x = element_line(color = NA),
-            plot.margin = unit(c(t = 1, r = -1, b = 1, l = -1), "mm"),
-            plot.title = element_text(hjust = 0.5))
-    g1 <-  region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.01) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      ggplot(.,
-             aes(x = reorder(SPECIES_CD, occurrence),
-                 y = occurrence,
-                 fill = 'even')) +
-      # geom_hline(yintercept = c(0.25, 0.5, 0.75),
-      # colour = "light grey") +
-      geom_bar(stat = "identity",
-               fill = "deepskyblue4") +
-      ggtitle(paste("Species", "occurrence", sep = " ")) +
-      # scale_fill_manual(values = c( "#0a4595")) +
-      theme_light() +
-      scale_y_continuous(expand = c(0,0)) +
-      theme(axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            plot.margin = unit(c(t = 1, r = -0.5, b = 1, l = 1), "mm"),
-            plot.title = element_text(hjust = 0.5,
-                                      size = 10,
-                                      face = "bold")) +
-      coord_flip() +
-      scale_y_reverse(expand = c(NA,0)) +
-      # scale_y_reverse(breaks = c(0, 0.25, 0.5, 0.75)) +
-      guides(fill = "none")
-    g2 <- region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.01) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      ggplot(data = .,
-             aes(x = reorder(SPECIES_CD, occurrence),
-                 y = CV*100,
-                 fill = 'even')) +
-      xlab(NULL) +
-      geom_bar(stat = "identity",
-               fill = "deepskyblue4") +
-      ggtitle("Coefficient of Variation (CV) of density") +
-      theme_light() +
-      scale_y_continuous(expand = c(0,0)) +
-      theme(axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            plot.margin = unit(c(t = 1, r = 1, b = 1, l = -2), "mm"),
-            plot.title = element_text(hjust = 0.5,
-                                      size = 10,
-                                      face = "bold")) +
-      coord_flip() +
-      guides(fill = "none") +
-      geom_hline(yintercept=20, linetype="dashed", color = "black")
-    # scale_fill_manual(values= c( "#58babb"))
-  } else {
-    # Create plot pieces to export
-    g.mid <- region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.02) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      # plot
-      ggplot(.,
-             aes(x = 1,
-                 y = reorder(SPECIES_CD, occurrence)))+
-      geom_text(aes(label = SPECIES_CD),
-                size = 4,
-                fontface = "italic") +
-      geom_segment(aes(x = 0.94,
-                       xend = 0.96,
-                       yend = SPECIES_CD))+
-      geom_segment(aes(x = 1.04,
-                       xend = 1.065,
-                       yend = SPECIES_CD))+
-      ggtitle(ptitle) +
-      ylab(NULL) +
-      scale_x_continuous(expand = c(0,0),
-                         limits = c(0.94, 1.065))+
-      theme(axis.title = element_blank(),
-            panel.grid = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            panel.background = element_blank(),
-            axis.text.x = element_text(color = NA),
-            axis.ticks.x = element_line(color = NA),
-            plot.margin = unit(c(t = 1, r = -1, b = 1, l = -1), "mm"),
-            plot.title = element_text(hjust = 0.5))
-    g1 <-  region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.01) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      ggplot(.,
-             aes(x = reorder(SPECIES_CD, occurrence),
-                 y = occurrence,
-                 fill = 'even')) +
-      # geom_hline(yintercept = c(0.25, 0.5, 0.75),
-      # colour = "light grey") +
-      geom_bar(stat = "identity",
-               fill = "deepskyblue4") +
-      ggtitle(paste("Species", "occurrence", sep = " ")) +
-      # scale_fill_manual(values = c( "#0a4595")) +
-      theme_light() +
-      scale_y_continuous(expand = c(0,0)) +
-      theme(axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            plot.margin = unit(c(t = 1, r = -0.5, b = 1, l = 1), "mm"),
-            plot.title = element_text(hjust = 0.5,
-                                      size = 12,
-                                      face = "bold")) +
-      coord_flip() +
-      scale_y_reverse(expand = c(NA,0)) +
-      # scale_y_reverse(breaks = c(0, 0.25, 0.5, 0.75)) +
-      guides(fill = "none")
-    g2 <- region_means %>%
-      # filter to year of interest
-      dplyr::filter(YEAR == year) %>%
-      # exclude occurrences of 0
-      dplyr::filter(occurrence > 0.02) %>%
-      # exclude CVs over 1
-      dplyr::filter(CV < 1) %>%
-      ggplot(data = .,
-             aes(x = reorder(SPECIES_CD, occurrence),
-                 y = CV*100,
-                 fill = 'even')) +
-      xlab(NULL) +
-      geom_bar(stat = "identity",
-               fill = "deepskyblue4") +
-      ggtitle("Coefficient of Variation (CV) of density") +
-      theme_light() +
-      scale_y_continuous(expand = c(0,0)) +
-      theme(axis.title.x = element_blank(),
-            axis.title.y = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            plot.margin = unit(c(t = 1, r = 1, b = 1, l = -2), "mm"),
-            plot.title = element_text(hjust = 0.5,
-                                      size = 12,
-                                      face = "bold")) +
-      coord_flip() +
-      guides(fill = "none") +
-      geom_hline(yintercept=20, linetype="dashed", color = "black")
-    # scale_fill_manual(values= c( "#58babb"))
-  }
-  cowplot::plot_grid(g1,
-                     g.mid,
-                     g2,
-                     ncol = 3
-                     # rel_widths = c(1, 0.5)
-  )
-  if(project == "NCRMP_DRM"){
-    ggsave(filename = paste(region_means$REGION[1], "Occ_v_CV_NCRMP_DRM.jpeg", sep = "_"),
-           path = file_path,
-           plot = gridExtra::grid.arrange(g1, g.mid, g2,
-                                          ncol = 3,
-                                          widths = c(3.5/9,2/9,3.5/9)),
-           width = 9.8,
-           height = 6.5,
-           dpi = 300,
-           units = "in",
-           device = "jpg")
-  } else{
-    ggsave(filename = paste(region_means$REGION[1], "Occ_v_CV.jpeg", sep = "_"),
-           path = file_path,
-           plot = gridExtra::grid.arrange(g1, g.mid, g2,
-                                          ncol = 3,
-                                          widths = c(3.5/9,2/9,3.5/9)),
-           width = 9.8,
-           height = 6.5,
-           dpi = 300,
-           units = "in",
-           device = "jpg")
-  }
-  region_means_cv20 <- region_means %>%
-    dplyr::filter(CV <= .20)
-  ################
-  # Export
-  ################
-  # Create list to export
-  output <- list(
-    "region_means" = region_means,
-    "region_means_cv20" = region_means_cv20)
-  return(output)
-}
-```
 
 
 ##### Density CV and occurrence 
 
 ```{r}
-
-fig_path <- "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures"
-CV_path <- "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV"
 
 
 density_CV_and_occ <- function(region_code, region_name, project, year){
@@ -461,6 +167,10 @@ density_CV_and_occ <- function(region_code, region_name, project, year){
                                               year = year,
                                               file_path = fig_path,  
                                               species_filter = "NULL")
+  
+  if(region_code == "Tortugas"){ region_code = "Tort"}
+  
+  if(region_code == "GOM"){ region_code = "FGBNMS"}
 
 save_file_dens_occ_cv <- function(file_name, data){
   assign(file_name, value = data, envir = .GlobalEnv)
@@ -478,11 +188,9 @@ save_file_dens_occ_cv(region_means_20_file_name, density_data$region_means_cv20)
   
 }
 
-density_CV_and_occ(region_code = "FLK", region_name = "Florida Keys", project = "NCRMP", year = 2022)
+density_CV_and_occ(region_code = "Tortugas", region_name = "Dry Tortugas", project = "NCRMP", year = 2022)
 
 ```
-
-
 
 ###### Density t-test
 ```{r}
@@ -496,9 +204,79 @@ NCRMP_perform_ttest(dataframe = NCRMP_SEFCRI_2014_22_density_region,
 ```
 ##### Density CV and occurrence 
 
+##### Species richness 
 ```{r}
-output1 <- NCRMP_DRM_SEFCRI_Occ_Den_CV_1
-output2 <- NCRMP_DRM_SEFCRI_Occ_Den_CV
+species_richness <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_species_richness_diversity(project = project, region = region)
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+  prep_csv("richness_site", call_data$richness_site, site_level_metrics)  
+  prep_csv("richness_strata", call_data$richness_strata, strata_level_metrics)  
+  prep_csv("richness_region", call_data$Domain_est, domain_est)
+  prep_csv("diversity_site", call_data$species_diversity_site, site_level_metrics)
+  prep_csv("diversity_strata", call_data$diversity_strata, strata_level_metrics)
+  prep_csv("diversity_region", call_data$Domain_est_div, domain_est)
+  
+
+}
+
+species_richness(region = "SEFCRI", project = "NCRMP", species_filter = FALSE, start_year = 2014, end_year =22 )
+
+
+```
+
+##### Percent cover
+```{r}
+percent_cover <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_calculate_cover(project = project, region = region)
+  
+
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+
+  prep_csv("percent_cover_species", call_data$percent_cover_species, species_level_metrics)  
+  prep_csv("percent_cover_site", call_data$percent_cover_site, site_level_metrics)  
+  #prep_csv("cover_group_key", call_data$cover_group_key, domain_est)
+  prep_csv("cover_strata", call_data$cover_strata, strata_level_metrics)
+  prep_csv("cover_region", call_data$Domain_est, domain_est)
+  #prep_csv("Domain_check", call_data$Domain_check, domain_est)
+
+}
+
+percent_cover(region = "FLK", project = "NCRMP", species_filter = FALSE, start_year = 2014, end_year =22 )
+```
+#### check equal
+```{r}
+output1 <- NCRMP_SEFCRI_2014_22_old_mort_site_1
+output2 <- NCRMP_SEFCRI_2014_22_old_mort_site
 
 # Compare outputs
 identical(output1, output2)  # Checks if they are exactly the same
@@ -508,371 +286,46 @@ all.equal(output1, output2, tolerance = 1e-10)
   # Returns TRUE if they are nearly identical, or a description of differences
 
 ```
-##### Density CV and occurrence - NCRMP + DRM  
-`
+#### colony percent cover
+```{r}
+colony_percent_cover <- function(region_code, region_name, project, start_year, end_year){
+  
+  
+  data <- NCRMP_colony_percent_cover(region = region_code,
+                                              ptitle = region_name,
+                                              file_path = fig_path,
+                                             project = project)
+  
+  
+  if(region_code == "Tortugas"){ region_code = "Tort"}
+  
+  if(region_code == "GOM"){ region_code = "FGBNMS"}
 
+  file_name <- paste(project, region_code, start_year, end_year, "percent_cover_region_species", sep = "_")
+  assign(file_name, value = data$region_means, envir = .GlobalEnv)
+  make_data_path <- paste(paste(CV_path, file_name, sep = "\\"), "csv", sep = ".")
+  write_csv(get(file_name), make_data_path)
+  final_data <- get(file_name)
+  usethis::use_data(final_data, overwrite = TRUE)
+  
+}
 
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "FLK",
-                                              ptitle = "Florida Keys",
-                                              year = 2022,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_FLK_Occ_Den_CV_1 <- tmp$region_means
-NCRMP_FLK_Occ_Den_CV_20_1 <- tmp$region_means_cv20
-write.csv(NCRMP_FLK_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FLK_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_FLK_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FLK_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FLK_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_Occ_Den_CV_20,  overwrite = TRUE)
-```
+colony_percent_cover(region_code = "SEFCRI", region_name = "Southeast Florida", project = "NCRMP", 2014, 22)
 
-
-
-
-
-
-##### Species richness - NCRMP only
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "SEFCRI")
-NCRMP_SEFCRI_2014_22_spp_list <- tmp$species_list 
-NCRMP_SEFCRI_2014_22_richness_site <- tmp$richness_site
-NCRMP_SEFCRI_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_SEFCRI_2014_22_richness_region <- tmp$Domain_est
-NCRMP_SEFCRI_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_SEFCRI_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_SEFCRI_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_SEFCRI_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_SEFCRI_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_SEFCRI_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_SEFCRI_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### DRM Species richness - NCRMP + DRM 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP_DRM",
-                                                       region = "SEFCRI")
-NCRMP_DRM_SEFCRI_2014_22_spp_list <- tmp$species_list 
-NCRMP_DRM_SEFCRI_2014_22_richness_site <- tmp$richness_site
-NCRMP_DRM_SEFCRI_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_DRM_SEFCRI_2014_22_richness_region <- tmp$Domain_est
-NCRMP_DRM_SEFCRI_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_DRM_SEFCRI_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_DRM_SEFCRI_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_DRM_SEFCRI_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_DRM_SEFCRI_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "SEFCRI", project = "NCRMP")
-NCRMP_SEFCRI_2014_22_percent_cover_species <- tmp$percent_cover_species
-NCRMP_SEFCRI_2014_22_percent_cover_site <- tmp$percent_cover_site
-NCRMP_SEFCRI_2014_22_cover_group_key <- tmp$cover_group_key
-NCRMP_SEFCRI_2014_22_cover_strata <- tmp$cover_strata
-NCRMP_SEFCRI_2014_22_cover_region <- tmp$Domain_est
-NCRMP_SEFCRI_2014_22_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_SEFCRI_2014_22_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_SEFCRI_2014_22_percent_cover_species.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_cover_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_cover_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_percent_cover_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_percent_cover_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_cover_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_cover_region,  overwrite = TRUE)
-```
-###### Species
-```{r}
-# Run function and assign names to dataframes 
-tmp <-NCRMP_colony_percent_cover(region = "SEFCRI",
-                                 ptitle = "Southeast Florida",
-                                 file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" )
-NCRMP_SEFCRI_2014_22_percent_cover_region_species <- tmp$region_means
-# Export data 
-write.csv(NCRMP_SEFCRI_2014_22_percent_cover_region_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_percent_cover_region_species.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_percent_cover_region_species,  overwrite = TRUE)
-```
-###### Percent cover t-test
-```{r}
-NCRMP_perform_ttest(dataframe = NCRMP_SEFCRI_2014_22_cover_region,
-                    metric1 = 'coral_cover',
-                    metric2 = 'avCvr',
-                    alpha = 0.05,
-                    test_type = "Years",
-                    n_years = 4,
-                    return_dataframe = FALSE)
-NCRMP_perform_ttest(dataframe = NCRMP_SEFCRI_2014_22_cover_region,
-                    metric1 = 'macroalgae_cover',
-                    metric2 = 'avCvr',
-                    alpha = 0.05,
-                    test_type = "Years",
-                    n_years = 4,
-                    return_dataframe = FALSE)
-```
-##### Mortality - NCRMP only
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_mortality(project = "NCRMP",
-                                     region = "SEFCRI",
-                                     species_filter = "FALSE")
-# ntot check - checks NTOT weighting for species-region mortality
-# wh_sum should always = 1 (sum of all the weights for a single species in a single year)
-unique(tmp$ntot_check_rec_mort_species$wh_sum)
-unique(tmp$ntot_check_old_mort_species$wh_sum)
-NCRMP_SEFCRI_2014_22_old_mort_site <- tmp$old_mortality_site
-NCRMP_SEFCRI_2014_22_rec_mort_site <- tmp$recent_mortality_site
-NCRMP_SEFCRI_2014_22_old_mort_strata <- tmp$old_mortality_strata
-NCRMP_SEFCRI_2014_22_rec_mort_strata <- tmp$rec_mortality_strata
-NCRMP_SEFCRI_2014_22_old_mort_region <- tmp$Domain_est_old_mort
-NCRMP_SEFCRI_2014_22_rec_mort_region <- tmp$Domain_est_rec_mort
-NCRMP_SEFCRI_2014_22_old_mort_species_region <- tmp$Domain_est_old_mort_species
-NCRMP_SEFCRI_2014_22_rec_mort_species_region <- tmp$Domain_est_rec_mort_species
-# Export data 
-write.csv(NCRMP_SEFCRI_2014_22_old_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_old_mort_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_rec_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_14_22_rec_mort_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_old_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_old_mort_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_rec_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_rec_mort_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_old_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_old_mort_region.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_rec_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_rec_mort_region.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_old_mort_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_old_mort_species_region.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_rec_mort_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_rec_mort_species_region.csv", row.names = F)
-usethis::use_data(NCRMP_SEFCRI_2014_22_rec_mort_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_old_mort_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_rec_mort_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_old_mort_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_rec_mort_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_old_mort_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_old_mort_species_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_rec_mort_species_region,  overwrite = TRUE)
-```
-##### DRM Mortality - NCRMP + DRM
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_mortality(project = "NCRMP_DRM",
-                                     region = "SEFCRI",
-                                     species_filter = "FALSE")
-# ntot check - checks NTOT weighting for species-region mortality
-# wh_sum should always = 1 (sum of all the weights for a single species in a single year)
-unique(tmp$ntot_check_rec_mort_species$wh_sum)
-unique(tmp$ntot_check_old_mort_species$wh_sum)
-NCRMP_DRM_SEFCRI_2014_22_old_mort_site <- tmp$old_mortality_site
-NCRMP_DRM_SEFCRI_2014_22_rec_mort_site <- tmp$recent_mortality_site
-NCRMP_DRM_SEFCRI_2014_22_old_mort_strata <- tmp$old_mortality_strata
-NCRMP_DRM_SEFCRI_2014_22_rec_mort_strata <- tmp$rec_mortality_strata
-NCRMP_DRM_SEFCRI_2014_22_old_mort_region <- tmp$Domain_est_old_mort
-NCRMP_DRM_SEFCRI_2014_22_rec_mort_region <- tmp$Domain_est_rec_mort
-NCRMP_DRM_SEFCRI_2014_22_old_mort_species_region <- tmp$Domain_est_old_mort_species
-NCRMP_DRM_SEFCRI_2014_22_rec_mort_species_region <- tmp$Domain_est_rec_mort_species
-# Export data 
-write.csv(NCRMP_DRM_SEFCRI_2014_22_old_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_old_mort_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_rec_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_14_22_rec_mort_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_old_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_old_mort_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_rec_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_rec_mort_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_old_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_old_mort_region.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_rec_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_rec_mort_region.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_old_mort_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_old_mort_species_region.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_rec_mort_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_rec_mort_species_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_rec_mort_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_old_mort_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_rec_mort_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_old_mort_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_rec_mort_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_old_mort_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_old_mort_species_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_rec_mort_species_region,  overwrite = TRUE)
-```
-##### Disease and bleaching - NCRMP only
-```{r}
-tmp <- NCRMP_DRM_calculate_disease_prevalence_colonies(project = "NCRMP",
-                                                       region = "SEFCRI",
-                                                       species_filter = "FALSE")
-NCRMP_SEFCRI_2014_22_dis_ble_prev_species <- tmp$dis_ble_prev_species
-NCRMP_SEFCRI_2014_22_dis_ble_prev_site <- tmp$dis_ble_prev_site
-NCRMP_SEFCRI_2014_22_dis_prev_strata <- tmp$dis_prev_strata
-NCRMP_SEFCRI_2014_22_ble_prev_strata <- tmp$ble_prev_strata
-NCRMP_SEFCRI_2014_22_dis_ble_prev_region <- tmp$Domain_est
-# Export data
-write.csv(NCRMP_SEFCRI_2014_22_dis_ble_prev_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_SEFCRI_2014_22_dis_ble_prev_species.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_dis_ble_prev_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_dis_ble_prev_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_dis_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_dis_prev_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_ble_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_ble_prev_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_dis_ble_prev_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_dis_ble_prev_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_ble_prev_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_ble_prev_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_prev_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_ble_prev_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_ble_prev_region,  overwrite = TRUE)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tmp <- NCRMP_DRM_calculate_dis_ble_prevalence_species_domain(project="NCRMP",
-                                                             region = "SEFCRI")
-# ntot check - wh_total should always be 1 (sum of weights across strata for each species in each year)
-unique(tmp$ntot_check$wh_total)
-NCRMP_SEFCRI_2014_22_dis_prev_species_region <- tmp$DomainEst_dis
-NCRMP_SEFCRI_2014_22_ble_prev_species_region <- tmp$DomainEst_bl
-write.csv(NCRMP_SEFCRI_2014_22_dis_prev_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_dis_prev_species_region.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_ble_prev_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_ble_prev_species_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_prev_species_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_ble_prev_species_region,  overwrite = TRUE)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tmp <- NCRMP_DRM_calculate_disease_prevalence_sites(project = "NCRMP",
-                                                    region = "SEFCRI",
-                                                    species_filter = "FALSE")
-NCRMP_SEFCRI_2014_22_dis_ble_PA_site <- tmp$dis_ble_prev_site
-NCRMP_SEFCRI_2014_22_dis_n_sites_per_strata <- tmp$dis_ble_prev_strata
-NCRMP_SEFCRI_2014_22_dis_ble_n_sites_per_region <- tmp$disease_prev_region
-write.csv(NCRMP_SEFCRI_2014_22_dis_ble_PA_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_dis_ble_PA_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_dis_n_sites_per_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_dis_n_sites_per_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_dis_ble_n_sites_per_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_dis_ble_n_sites_per_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_ble_PA_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_n_sites_per_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_dis_ble_n_sites_per_region,  overwrite = TRUE)
-```
-##### DRM Disease prevalence - NCRMP + DRM 
-```{r}
-tmp <- NCRMP_DRM_calculate_disease_prevalence_colonies(project = "NCRMP_DRM",
-                                                       region = "SEFCRI",
-                                                       species_filter = "FALSE")
-NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species <- tmp$dis_ble_prev_species
-NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_site <- tmp$dis_ble_prev_site
-NCRMP_DRM_SEFCRI_2014_22_dis_prev_strata <- tmp$dis_prev_strata
-NCRMP_DRM_SEFCRI_2014_22_ble_prev_strata <- tmp$ble_prev_strata
-NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_region <- tmp$Domain_est
-# Export data
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_dis_prev_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_ble_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_ble_prev_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_region, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_ble_prev_strata, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_prev_strata, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_site, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_ble_prev_species, overwrite = T)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tmp <- NCRMP_DRM_calculate_dis_ble_prevalence_species_domain(project="NCRMP_DRM",
-                                                             region = "SEFCRI")
-# ntot check - wh_total should always be 1 (sum of weights across strata for each species in each year)
-unique(tmp$ntot_check$wh_total)
-NCRMP_DRM_SEFCRI_2014_22_dis_prev_species_region <- tmp$DomainEst_dis
-NCRMP_DRM_SEFCRI_2014_22_ble_prev_species_region <- tmp$DomainEst_bl
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_prev_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_dis_prev_species_region.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_ble_prev_species_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_ble_prev_species_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_prev_species_region, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_ble_prev_species_region, overwrite = T)
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-tmp <- NCRMP_DRM_calculate_disease_prevalence_sites(project = "NCRMP_DRM",
-                                                    region = "SEFCRI",
-                                                    species_filter = "FALSE")
-NCRMP_DRM_SEFCRI_2014_22_dis_ble_PA_site <- tmp$dis_ble_prev_site
-NCRMP_DRM_SEFCRI_2014_22_dis_n_sites_per_strata <- tmp$dis_ble_prev_strata
-NCRMP_DRM_SEFCRI_2014_22_dis_ble_n_sites_per_region <- tmp$disease_prev_region
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_ble_PA_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_22_dis_ble_PA_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_n_sites_per_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_22_dis_n_sites_per_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_dis_ble_n_sites_per_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_dis_ble_n_sites_per_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_ble_PA_site, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_n_sites_per_strata, overwrite = T)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_dis_ble_n_sites_per_region, overwrite = T)
-```
-##### Colony size - NCRMP only  
-```{r}
-tmp <- NCRMP_DRM_calculate_mean_colony_size(project = "NCRMP",
-                                            region = "SEFCRI",
-                                            species_filter = "FALSE")
-NCRMP_SEFCRI_2014_22_col_size_species <- tmp$size_species
-NCRMP_SEFCRI_2014_22_col_size_site <- tmp$size_site
-NCRMP_SEFCRI_2014_22_col_size_cm2_strata <- tmp$size_est_cm2_strata
-NCRMP_SEFCRI_2014_22_col_size_cm3_strata <- tmp$size_est_cm3_strata
-NCRMP_SEFCRI_2014_22_col_size_region <- tmp$Domain_est
-NCRMP_SEFCRI_2014_22_col_size_region_species <- tmp$Domain_est_species
-# species-specific ntot check
-unique(tmp$ntot_check_species$wh_sum)
-# Export data
-write.csv(NCRMP_SEFCRI_2014_22_col_size_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_col_size_species.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_col_size_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_SEFCRI_2014_22_col_size_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_col_size_cm2_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_col_size_cm2_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_col_size_cm3_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_SEFCRI_2014_22_col_size_cm3_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_col_size_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_col_size_region.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_col_size_region_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_SEFCRI_2014_22_col_size_region_species.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_cm2_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_cm3_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_col_size_region_species,  overwrite = TRUE)
-```
-##### Colony size - NCRMP + DRM  
-```{r}
-tmp <- NCRMP_DRM_calculate_mean_colony_size(project = "NCRMP_DRM",
-                                            region = "SEFCRI",
-                                            species_filter = "FALSE")
-NCRMP_DRM_SEFCRI_2014_22_col_size_region_species <- tmp$Domain_est_species
-# species-specific ntot check
-unique(tmp$ntot_check_species$wh_sum)
-write.csv(NCRMP_DRM_SEFCRI_2014_22_col_size_region_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_22_col_size_region_species.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_22_col_size_region_species,  overwrite = TRUE)
-```
-##### Diadema density
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_invert_density(region = "SEFCRI")
-NCRMP_SEFCRI_2014_22_invert_den_site <- tmp$diadema_density_site
-NCRMP_SEFCRI_2014_22_invert_den_strata <- tmp$invert_strata # Right now just diadema
-NCRMP_SEFCRI_2014_22_invert_den_region <- tmp$Domain_est
-# Export data 
-write.csv(NCRMP_SEFCRI_2014_22_invert_den_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Invertebrates\\NCRMP_SEFCRI_2014_22_invert_den_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_invert_den_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Invertebrates\\NCRMP_SEFCRI_2014_22_invert_den_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_22_invert_den_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Invertebrates\\NCRMP_SEFCRI_2014_22_invert_den_region.csv", row.names = F)
-# copy to conole and run
-usethis::use_data(NCRMP_SEFCRI_2014_22_invert_den_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_invert_den_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_22_invert_den_region,  overwrite = TRUE)
 ```
 
-###### Density t-test
+####density t test
 ```{r}
+
+get_density_ttest_data <- function(region){
+  
+    dataframe = switch(region,
+                     "SEFCRI" = NCRMP_SEFCRI_2014_22_density_region,
+                     "FLK" = NCRMP_FLK_2014_22_density_region,
+                     "Tortugas" = NCRMP_Tortugas_2014_22_density_region,
+
+  )
+  
 NCRMP_perform_ttest(dataframe = NCRMP_FLK_2014_22_density_region,
                     metric1 = 'density',
                     metric2 = 'avDen',
@@ -880,125 +333,285 @@ NCRMP_perform_ttest(dataframe = NCRMP_FLK_2014_22_density_region,
                     test_type = "Years",
                     n_years = 4, # this needs to be updated in conjunction with updating the t test function to accommodate more years
                     return_dataframe = FALSE)
-```
-##### Density CV and occurrence - NCRMP only  
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "FLK",
-                                              ptitle = "Florida Keys",
-                                              year = 2022,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_FLK_Occ_Den_CV <- tmp$region_means
-NCRMP_FLK_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_FLK_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FLK_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_FLK_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FLK_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FLK_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_Occ_Den_CV_20,  overwrite = TRUE)
+  
+}
 ```
 
-##### Density CV and occurrence - NCRMP + DRM  
+#### avCvr ttest
 ```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "FLK",
-                                              ptitle = "Florida Keys",
-                                              year = 2022,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures/NCRMP_DRM" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP_DRM")
-NCRMP_DRM_FLK_Occ_Den_CV <- tmp$region_means
-NCRMP_DRM_FLK_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_DRM_FLK_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_DRM_FLK_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_DRM_FLK_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_DRM_FLK_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_FLK_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_Occ_Den_CV_20,  overwrite = TRUE)
+
+get_avCvr_ttest_data <- function(region){
+  
+  dataframe = switch(region,
+                     "SEFCRI" = NCRMP_SEFCRI_2014_22_cover_region,
+                     "FLK" = NCRMP_FLK_2014_22_cover_region,
+                     "Tortugas" = NCRMP_Tort_2014_22_cover_region,
+
+  )
+  
+print("coral cover t-test results")
+
+NCRMP_perform_ttest(dataframe = dataframe,
+                    metric1 = 'coral_cover',
+                    metric2 = 'avCvr',
+                    alpha = 0.05,
+                    #test_type = "Years",
+                    n_years = 4,
+                    return_dataframe = FALSE)
+
+print("macroalgae cover t-test results")
+
+NCRMP_perform_ttest(dataframe = dataframe,
+                    metric1 = 'macroalgae_cover',
+                    metric2 = 'avCvr',
+                    alpha = 0.05,
+                    #test_type = "Years",
+                    n_years = 4,
+                    return_dataframe = FALSE)
+
+}
+
+get_ttest_data("SEFCRI")
+
+
 ```
-##### Species richness - NCRMP only
+
+##### Mortality
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "FLK")
-NCRMP_FLK_2014_22_spp_list <- tmp$species_list 
-NCRMP_FLK_2014_22_richness_site <- tmp$richness_site
-NCRMP_FLK_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_FLK_2014_22_richness_region <- tmp$Domain_est
-NCRMP_FLK_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_FLK_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_FLK_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_FLK_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FLK_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FLK_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FLK_2014_22_richness_region.csv", row.names = F)
-# Diversity
-write.csv(NCRMP_FLK_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FLK_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FLK_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FLK_2014_22_diversity_region.csv", row.names = F)
-# copy to console to export
-usethis::use_data(NCRMP_FLK_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_diversity_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_richness_region,  overwrite = TRUE)
-# remove old versions of data objects
+
+mortality <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_mortality(project = project, region = region)
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    unique(call_data$ntot_check_rec_mort_species$wh_sum)
+    unique(call_data$ntot_check_old_mort_species$wh_sum)
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+  prep_csv("old_mort_site", call_data$old_mortality_site, site_level_metrics)  
+  prep_csv("rec_mort_site", call_data$recent_mortality_site, site_level_metrics)  
+  prep_csv("old_mort_strata", call_data$old_mortality_strata, strata_level_metrics)  
+  prep_csv("rec_mort_strata", call_data$rec_mortality_strata, strata_level_metrics)  
+  prep_csv("old_mort_region", call_data$Domain_est_old_mort, domain_est)
+  prep_csv("rec_mort_region", call_data$Domain_est_rec_mort, site_level_metrics)
+  prep_csv("old_mort_species_region", call_data$Domain_est_old_mort_species, strata_level_metrics)
+  prep_csv("rec_mort_species_region", call_data$Domain_est_rec_mort_species, domain_est)
+
+}
+
+mortality(region = "SEFCRI", project = "NCRMP_DRM", species_filter = FALSE, start_year = 2014, end_year =22 )
+
 ```
-##### DRM Species richness - NCRMP + DRM 
+
+##### Disease and bleaching - Colonies
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP_DRM",
-                                                       region = "FLK")
-NCRMP_DRM_FLK_2014_22_spp_list <- tmp$species_list 
-NCRMP_DRM_FLK_2014_22_richness_site <- tmp$richness_site
-NCRMP_DRM_FLK_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_DRM_FLK_2014_22_richness_region <- tmp$Domain_est
-NCRMP_DRM_FLK_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_DRM_FLK_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_DRM_FLK_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_DRM_FLK_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_FLK_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_DRM_FLK_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_FLK_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_FLK_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_FLK_2014_22_richness_region.csv", row.names = F)
-# Diversity
-write.csv(NCRMP_DRM_FLK_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_FLK_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_DRM_FLK_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_FLK_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_FLK_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_FLK_2014_22_diversity_region.csv", row.names = F)
-# copy to console to export
-usethis::use_data(NCRMP_DRM_FLK_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_2014_22_diversity_region,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_FLK_2014_22_richness_region,  overwrite = TRUE)
-# remove old versions of data objects
+disease_prev_colonies <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_disease_prevalence_colonies(project = project,
+                                                       region = region,
+                                                       species_filter = "FALSE")
+  
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+  prep_csv("dis_ble_prev_species", call_data$dis_ble_prev_species, species_level_metrics) 
+  prep_csv("dis_ble_prev_site", call_data$dis_ble_prev_site, site_level_metrics)  
+  prep_csv("dis_prev_strata", call_data$dis_prev_strata, strata_level_metrics)  
+  prep_csv("ble_prev_strata", call_data$ble_prev_strata, strata_level_metrics)
+  prep_csv("dis_ble_prev_region", call_data$Domain_est, domain_est)
+  
+
+}
+
+disease_prev_colonies(region = 'SEFCRI', project = "NCRMP", species_filter = FALSE, start_year = 2014, end_year =22)
 ```
-##### Percent cover
-###### Region 
+##### Disease and bleaching - Species Domain
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "FLK", project = "NCRMP")
-#tmp_flk <- tmp
-NCRMP_FLK_2014_22_percent_cover_species <- tmp$percent_cover_species
-NCRMP_FLK_2014_22_percent_cover_site <- tmp$percent_cover_site
-NCRMP_FLK_2014_22_cover_group_key <- tmp$cover_group_key
-NCRMP_FLK_2014_22_cover_strata <- tmp$cover_strata
-NCRMP_FLK_2014_22_cover_region <- tmp$Domain_est
-NCRMP_FLK_2014_22_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site # this will always be off for some 2014 sites - transects 1 and 2 were given different habitats. 
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_FLK_2014_22_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_FLK_2014_22_percent_cover_species.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FLK_2014_22_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FLK_2014_22_cover_strata.csv", row.names = F)
-write.csv(NCRMP_FLK_2014_22_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FLK_2014_22_cover_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FLK_2014_22_percent_cover_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_percent_cover_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_cover_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FLK_2014_22_cover_region,  overwrite = TRUE)
+
+disease_ble_species_domain <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_dis_ble_prevalence_species_domain(project=project,
+                                                             region = region)
+  
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+    unique(call_data$ntot_check$wh_total)
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+
+  prep_csv("dis_prev_species_region", call_data$DomainEst_dis, domain_est)
+  prep_csv("ble_prev_species_region", call_data$DomainEst_bl, domain_est)
+  
+
+
+}
+
+disease_ble_species_domain(region = "SEFCRI", project = "NCRMP", species_filter = FALSE, start_year = 2014, end_year = 22 )
 ```
+
+##### Disease and bleaching - Sites
+```{r}
+disease_ble_sites <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_disease_prevalence_sites(project=project,
+                                                             region = region, species_filter = species_filter)
+  
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+
+  prep_csv("dis_ble_PA_site", call_data$dis_ble_prev_site, site_level_metrics)
+  prep_csv("dis_n_sites_per_strata", call_data$dis_ble_prev_strata, strata_level_metrics)
+  prep_csv("dis_ble_n_sites_per_region", call_data$disease_prev_region, domain_est)
+  
+
+
+}
+
+disease_ble_sites(region = "SEFCRI", project = "NCRMP_DRM", species_filter = FALSE, start_year = 2014, end_year = 22 )
+```
+
+####Colony Size
+
+```{r}
+colony_size <- function(region, project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_DRM_calculate_mean_colony_size(project=project,
+                                                             region = region, species_filter = "FALSE")
+  
+
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+  
+  
+  prep_csv("col_size_region_species", call_data$Domain_est_species, domain_est)
+  
+  
+if(project == "NCRMP"){
+
+  prep_csv("col_size_species", call_data$size_species, site_level_metrics)
+  prep_csv("col_size_site", call_data$size_site, site_level_metrics)
+  prep_csv("col_size_cm2_strata", call_data$size_est_cm2_strata, strata_level_metrics)
+   prep_csv("col_size_cm3_strata", call_data$size_est_cm3_strata, strata_level_metrics)
+   prep_csv("col_size_region", call_data$Domain_est, domain_est)
+   prep_csv("col_size_region_species", call_data$Domain_est_species, domain_est)
+}
+  
+}
+
+
+colony_size(region = "SEFCRI", project = "NCRMP_DRM", species_filter = FALSE, start_year = 2014, end_year = 22 )
+```
+
+##### Diadema density
+```{r}
+diadema <- function(region, project = "NCRMP", species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- NCRMP_calculate_invert_density(region = region)
+  
+
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+  if(region == "Tortugas"){ region = "Tort"}
+  
+  if(region == "GOM"){ region = "FGBNMS"}
+    
+
+    
+    file_name <- paste(project, region, start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+  
+  
+  NCRMP_SEFCRI_2014_22_invert_den_site <- call_data$diadema_density_site
+NCRMP_SEFCRI_2014_22_invert_den_strata <- call_data$invert_strata # Right now just diadema
+NCRMP_SEFCRI_2014_22_invert_den_region <- call_data$Domain_est
+
+
+  prep_csv("invert_den_site", call_data$diadema_density_site, invert)
+  prep_csv("invert_den_strata", call_data$invert_strata, invert)
+  prep_csv("invert_den_region", call_data$Domain_est, invert)
+
+
+   
+}
+
+
+diadema(region = "SEFCRI", species_filter = FALSE, start_year = 2014, end_year = 22 )
+```
+
+
+
+#JUST NEED CHECKING
+
 ###### Species
 ```{r}
 # Run function and assign names to dataframes 
@@ -1447,7 +1060,6 @@ usethis::use_data(MIR_2022_invert_den_region,  overwrite = TRUE)
 # Don't forget to delete the previous years output in the R package and in the Data Queries folder 
 ```
 
-
 ###### Density t-test
 ```{r}
 NCRMP_perform_ttest(dataframe = NCRMP_Tort_2014_22_density_region,
@@ -1458,120 +1070,7 @@ NCRMP_perform_ttest(dataframe = NCRMP_Tort_2014_22_density_region,
                     n_years = 4, # this needs to be updated in conjunction with updating the t test function to accommodate more years
                     return_dataframe = FALSE)
 ```
-##### Density CV and occurrence 
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "Tortugas",
-                                              ptitle = "Dry Tortugas",
-                                              year = 2022,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_Tort_Occ_Den_CV <- tmp$region_means
-NCRMP_Tort_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_Tort_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_Tort_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_Tort_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_Tort_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_Tort_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_Occ_Den_CV_20,  overwrite = TRUE)
-```
 
-##### Density CV and occurrence - NCRMP + DRM  
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "Tortugas",
-                                              ptitle = "Dry Tortugas",
-                                              year = 2022,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures/NCRMP_DRM" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP_DRM")
-NCRMP_DRM_Tort_Occ_Den_CV <- tmp$region_means
-NCRMP_DRM_Tort_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_DRM_Tort_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_DRM_Tort_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_DRM_Tort_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_DRM_Tort_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_Occ_Den_CV_20,  overwrite = TRUE)
-```
-##### Species richness - NCRMP only
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "Tortugas")
-NCRMP_Tort_2014_22_spp_list <- tmp$species_list 
-NCRMP_Tort_2014_22_richness_site <- tmp$richness_site
-NCRMP_Tort_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_Tort_2014_22_richness_region <- tmp$Domain_est
-NCRMP_Tort_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_Tort_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_Tort_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_Tort_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_Tort_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_Tort_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_Tort_2014_22_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_Tort_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_Tort_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_Tort_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_Tort_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_Tort_2014_22_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_Tort_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### DRM Species richness - NCRMP + DRM 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP_DRM",
-                                                       region = "Tortugas")
-NCRMP_DRM_Tort_2014_22_spp_list <- tmp$species_list 
-NCRMP_DRM_Tort_2014_22_richness_site <- tmp$richness_site
-NCRMP_DRM_Tort_2014_22_richness_strata <- tmp$richness_strata
-NCRMP_DRM_Tort_2014_22_richness_region <- tmp$Domain_est
-NCRMP_DRM_Tort_2014_22_diversity_site <- tmp$species_diversity_site
-NCRMP_DRM_Tort_2014_22_diversity_strata <- tmp$diversity_strata
-NCRMP_DRM_Tort_2014_22_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_DRM_Tort_2014_22_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_Tort_2014_22_richness_site.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_22_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_Tort_2014_22_richness_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_22_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_Tort_2014_22_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_DRM_Tort_2014_22_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_DRM_Tort_2014_22_diversity_site.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_22_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_DRM_Tort_2014_22_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_22_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_DRM_Tort_2014_22_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_22_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "Tortugas", project = "NCRMP")
-NCRMP_Tort_2014_22_percent_cover_species <- tmp$percent_cover_species
-NCRMP_Tort_2014_22_percent_cover_site <- tmp$percent_cover_site
-NCRMP_Tort_2014_22_cover_group_key <- tmp$cover_group_key
-NCRMP_Tort_2014_22_cover_strata <- tmp$cover_strata
-NCRMP_Tort_2014_22_cover_region <- tmp$Domain_est
-NCRMP_Tort_2014_22_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_Tort_2014_22_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_Tort_2014_22_percent_cover_species.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_Tort_2014_22_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_Tort_2014_22_cover_strata.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_22_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_Tort_2014_22_cover_region.csv", row.names = F)
-usethis::use_data(NCRMP_Tort_2014_22_percent_cover_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_percent_cover_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_cover_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_22_cover_region,  overwrite = TRUE)
-```
 ###### Species
 ```{r}
 # Run function and assign names to dataframes 
@@ -1842,79 +1341,7 @@ NCRMP_perform_ttest(dataframe = NCRMP_FGBNMS_2013_24_density_region,
                     n_years = 4,
                     return_dataframe = FALSE)
 ```
-##### Density CV and occurrence 
-```{r}
-# In order for this function to run, you first need to commit NCRMP_FGBNMS_2013_24_density_species from above to the package. 
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "GOM",
-                                              ptitle = "Flower Garden Banks",
-                                              year = 2024,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_FGBNMS_Occ_Den_CV <- tmp$region_means
-NCRMP_FGBNMS_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_FGBNMS_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FGBNMS_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_FGBNMS_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FGBNMS_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_Occ_Den_CV_20,  overwrite = TRUE)
-```
-##### Species richness  
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "GOM")
-NCRMP_FGBNMS_2013_24_spp_list <- tmp$species_list 
-NCRMP_FGBNMS_2013_24_richness_site <- tmp$richness_site
-NCRMP_FGBNMS_2013_24_richness_strata <- tmp$richness_strata #ok that this does not have rugosity code or PROT?
-NCRMP_FGBNMS_2013_24_richness_region <- tmp$Domain_est
-NCRMP_FGBNMS_2013_24_diversity_site <- tmp$species_diversity_site
-NCRMP_FGBNMS_2013_24_diversity_strata <- tmp$diversity_strata #No PROT?
-NCRMP_FGBNMS_2013_24_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_FGBNMS_2013_24_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FGBNMS_2013_24_richness_site.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FGBNMS_2013_24_richness_strata.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FGBNMS_2013_24_richness_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FGBNMS_2013_24_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_FGBNMS_2013_24_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FGBNMS_2014_24_diversity_site.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FGBNMS_2014_24_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FGBNMS_2014_24_diversity_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FGBNMS_2013_24_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "GOM", project = "NCRMP")
-NCRMP_FGBNMS_2013_24_percent_cover_species <- tmp$percent_cover_species
-NCRMP_FGBNMS_2013_24_percent_cover_site <- tmp$percent_cover_site
-NCRMP_FGBNMS_2013_24_cover_group_key <- tmp$cover_group_key
-NCRMP_FGBNMS_2013_24_cover_strata <- tmp$cover_strata
-NCRMP_FGBNMS_2013_24_cover_region <- tmp$Domain_est
-NCRMP_FGBNMS_2013_24_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that # was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_FGBNMS_2013_24_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_FGBNMS_2013_24_percent_cover_species.csv", row.names = F)
-#T:\NCRMP\Data Analysis\Analysis ready data\Data Queries\R Package Exports\Species level metrics
-write.csv(NCRMP_FGBNMS_2013_24_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_FGBNMS_2013_24_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_FGBNMS_2013_24_cover_strata.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_24_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_FGBNMS_2013_24_cover_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_FGBNMS_2013_24_percent_cover_species,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_percent_cover_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_cover_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_24_cover_region,  overwrite = TRUE)
-```
+
 ###### Species
 ```{r}
 # Run function and assign names to dataframes. NCRMP_FGBNMS_2013_24_percent_cover_species created above needs to be added to the package before this function can run.
@@ -2112,85 +1539,7 @@ NCRMP_perform_ttest(dataframe = NCRMP_STTSTJ_2013_23_density_region,
                     test_type = "Years",
                     return_dataframe = FALSE)
 ```
-##### Density CV and occurrence 
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "STTSTJ",
-                                              ptitle = "St. Thomas & St. John",
-                                              year = 2023,
-                                              file_path = "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data" ,  #must be connected to VPN if filepath is to a network drive
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_STTSTJ_Occ_Den_CV <- tmp$region_means
-NCRMP_STTSTJ_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_STTSTJ_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_STTSTJ_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_STTSTJ_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STTSTJ_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_Occ_Den_CV_20,  overwrite = TRUE)
-```
-##### Species richness  
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "STTSTJ")
-NCRMP_STTSTJ_2013_23_spp_list <- tmp$species_list 
-NCRMP_STTSTJ_2013_23_richness_site <- tmp$richness_site
-NCRMP_STTSTJ_2013_23_richness_strata <- tmp$richness_strata
-NCRMP_STTSTJ_2013_23_richness_region <- tmp$Domain_est
-NCRMP_STTSTJ_2013_23_diversity_site <- tmp$species_diversity_site
-NCRMP_STTSTJ_2013_23_diversity_strata <- tmp$diversity_strata
-NCRMP_STTSTJ_2013_23_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_STTSTJ_2013_23_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STTSTJ_2013_23_richness_site.csv", row.names = F)
-# 
-write.csv(NCRMP_STTSTJ_2013_23_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STTSTJ_2013_23_richness_strata.csv", row.names = F)
-# 
-write.csv(NCRMP_STTSTJ_2013_23_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STTSTJ_2013_23_richness_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STTSTJ_2013_23_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_23_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_23_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_STTSTJ_2013_23_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STTSTJ_2013_23_diversity_site.csv", row.names = F)
-# 
-write.csv(NCRMP_STTSTJ_2013_23_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STTSTJ_2013_23_diversity_strata.csv", row.names = F)
-# 
-write.csv(NCRMP_STTSTJ_2013_23_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STTSTJ_2013_23_diversity_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STTSTJ_2013_23_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_23_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_23_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "STTSTJ", project = "NCRMP")
-NCRMP_STTSTJ_2013_23_percent_cover_species <- tmp$percent_cover_species
-NCRMP_STTSTJ_2013_23_percent_cover_site <- tmp$percent_cover_site
-NCRMP_STTSTJ_2013_23_cover_group_key <- tmp$cover_group_key
-NCRMP_STTSTJ_2013_23_cover_strata <- tmp$cover_strata
-NCRMP_STTSTJ_2013_23_cover_region <- tmp$Domain_est
-NCRMP_STTSTJ_2013_23_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that # was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_STTSTJ_2013_23_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_STTSTJ_2013_23_percent_cover_species.csv", row.names = F)
-#T:\NCRMP\Data Analysis\Analysis ready data\Data Queries\R Package Exports\Species level metrics
-write.csv(NCRMP_STTSTJ_2013_23_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STTSTJ_2013_23_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_23_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STTSTJ_2013_23_cover_strata.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_23_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STTSTJ_2013_23_cover_region.csv", row.names = F)
-# usethis::use_data(NCRMP_STTSTJ_2013_21_percent_cover_species,  overwrite = TRUE)
-save(NCRMP_STTSTJ_2013_23_percent_cover_species, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STTSTJ_2013_23_percent_cover_species.rda")
-# usethis::use_data(NCRMP_STTSTJ_2013_21_percent_cover_site,  overwrite = TRUE)
-save(NCRMP_STTSTJ_2013_23_percent_cover_site, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STTSTJ_2013_23_percent_cover_site.rda")
-# usethis::use_data(NCRMP_STTSTJ_2013_21_cover_strata,  overwrite = TRUE)
-save(NCRMP_STTSTJ_2013_23_cover_strata, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_STTSTJ_2013_23_cover_strata.rda")
-# usethis::use_data(NCRMP_STTSTJ_2013_21_cover_region,  overwrite = TRUE)
-save(NCRMP_STTSTJ_2013_23_cover_region, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STTSTJ_2013_23_percent_cover_region.rda")
-```
+
 ###### Species
 ```{r}
 # Run function and assign names to dataframes 
@@ -2395,8 +1744,6 @@ save(NCRMP_STTSTJ_2013_23_invert_den_strata, file = "~/Desktop/OneDrive - Univer
 save(NCRMP_STTSTJ_2013_23_invert_den_region, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STTSTJ_2013_23_invert_den_region.rda")
 ```
 ### St. Croix  
-
-
 ###### Density t-test
 ```{r}
 NCRMP_perform_ttest(dataframe = NCRMP_STX_2015_23_density_region,
@@ -2407,81 +1754,7 @@ NCRMP_perform_ttest(dataframe = NCRMP_STX_2015_23_density_region,
                     test_type = "Years",
                     return_dataframe = FALSE)
 ```
-##### Density CV and occurrence 
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "STX",
-                                              ptitle = "St. Croix",
-                                              year = 2023,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_STX_Occ_Den_CV <- tmp$region_means
-NCRMP_STX_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_STX_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_STX_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_STX_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_STX_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STX_Occ_Den_CV,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_Occ_Den_CV_20,  overwrite = TRUE)
-# remove old versions
-```
-##### Species richness  
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "STX")
-NCRMP_STX_2015_23_spp_list <- tmp$species_list 
-NCRMP_STX_2015_23_richness_site <- tmp$richness_site
-NCRMP_STX_2015_23_richness_strata <- tmp$richness_strata
-NCRMP_STX_2015_23_richness_region <- tmp$Domain_est
-NCRMP_STX_2015_23_diversity_site <- tmp$species_diversity_site
-NCRMP_STX_2015_23_diversity_strata <- tmp$diversity_strata
-NCRMP_STX_2015_23_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_STX_2015_23_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STX_2015_23_richness_site.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STX_2015_23_richness_strata.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STX_2015_23_richness_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STX_2015_23_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_23_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_23_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_STX_2015_23_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STX_2015_23_diversity_site.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STX_2015_23_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STX_2015_23_diversity_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_STX_2015_23_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_23_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_23_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "STX", project = "NCRMP")
-NCRMP_STX_2015_23_percent_cover_species <- tmp$percent_cover_species
-NCRMP_STX_2015_23_percent_cover_site <- tmp$percent_cover_site
-NCRMP_STX_2015_23_cover_group_key <- tmp$cover_group_key
-NCRMP_STX_2015_23_cover_strata <- tmp$cover_strata
-NCRMP_STX_2015_23_cover_region <- tmp$Domain_est
-NCRMP_STX_2015_23_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that # was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_STX_2015_23_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_STX_2015_23_percent_cover_species.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STX_2015_23_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STX_2015_23_cover_strata.csv", row.names = F)
-write.csv(NCRMP_STX_2015_23_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STX_2015_23_cover_region.csv", row.names = F)
-#usethis::use_data(NCRMP_STX_2015_21_percent_cover_species,  overwrite = TRUE)
-save(NCRMP_STX_2015_23_percent_cover_species, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STX_2015_23_percent_cover_species.rda")
-#usethis::use_data(NCRMP_STX_2015_21_percent_cover_site,  overwrite = TRUE)
-save(NCRMP_STX_2015_23_percent_cover_site, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STX_2015_23_percent_cover_site.rda")
-#usethis::use_data(NCRMP_STX_2015_21_cover_strata,  overwrite = TRUE)
-save(NCRMP_STX_2015_23_cover_strata, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STX_2015_23_cover_strata.rda")
-#usethis::use_data(NCRMP_STX_2015_21_cover_region,  overwrite = TRUE)
-save(NCRMP_STX_2015_23_cover_region, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_STX_2015_23_cover_region.rda")
-```
+
 ###### Species
 ```{r}
 # Run function and assign names to dataframes 
@@ -2703,83 +1976,7 @@ NCRMP_perform_ttest(dataframe = NCRMP_PRICO_2014_23_density_region,
                     #test_type = "Years",
                     return_dataframe = FALSE)
 ```
-##### Density CV and occurrence 
-```{r}
-tmp <- NCRMP_DRM_colony_density_CV_and_occurrence(region = "PRICO",
-                                              ptitle = "Puerto Rico",
-                                              year = 2023,
-                                              file_path = "K:/_BioGeoProjects/NCRMP/Data Analysis/Analysis ready data/Figures" ,
-                                              species_filter = "NULL",
-                                              project = "NCRMP")
-NCRMP_PRICO_Occ_Den_CV <- tmp$region_means
-NCRMP_PRICO_Occ_Den_CV_20 <- tmp$region_means_cv20
-write.csv(NCRMP_PRICO_Occ_Den_CV, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_PRICO_Occ_Den_CV.csv", row.names = F)
-write.csv(NCRMP_PRICO_Occ_Den_CV_20, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\CV\\NCRMP_PRICO_Occ_Den_CV_20.csv", row.names = F)
-# copy to console and run
-#usethis::use_data(NCRMP_PRICO_Occ_Den_CV,  overwrite = TRUE)
-#usethis::use_data(NCRMP_PRICO_Occ_Den_CV_20,  overwrite = TRUE)
-save(NCRMP_PRICO_Occ_Den_CV, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data//NCRMP_PRICO_Occ_Den_CV.rda")
-save(NCRMP_PRICO_Occ_Den_CV_20, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_Occ_Den_CV_20.rda")
-```
-##### Species richness  
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "PRICO")
-NCRMP_PRICO_2014_23_spp_list <- tmp$species_list 
-NCRMP_PRICO_2014_23_richness_site <- tmp$richness_site
-NCRMP_PRICO_2014_23_richness_strata <- tmp$richness_strata
-NCRMP_PRICO_2014_23_richness_region <- tmp$Domain_est
-NCRMP_PRICO_2014_23_diversity_site <- tmp$species_diversity_site
-NCRMP_PRICO_2014_23_diversity_strata <- tmp$diversity_strata
-NCRMP_PRICO_2014_23_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_PRICO_2014_23_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_PRICO_2014_23_richness_site.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_PRICO_2014_23_richness_strata.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_PRICO_2014_23_richness_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_PRICO_2014_23_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_23_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_23_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_PRICO_2014_23_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_PRICO_2014_23_diversity_site.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_PRICO_2014_23_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_PRICO_2014_23_diversity_region.csv", row.names = F)
-# copy to console and run
-usethis::use_data(NCRMP_PRICO_2014_23_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_23_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_23_diversity_region,  overwrite = TRUE)
-# remove old versions of data objects
-```
-##### Percent cover
-###### Region
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_calculate_cover(region = "PRICO", project = "NCRMP")
-NCRMP_PRICO_2014_23_percent_cover_species <- tmp$percent_cover_species
-NCRMP_PRICO_2014_23_percent_cover_site <- tmp$percent_cover_site
-NCRMP_PRICO_2014_23_cover_group_key <- tmp$cover_group_key
-NCRMP_PRICO_2014_23_cover_strata <- tmp$cover_strata
-NCRMP_PRICO_2014_23_cover_region <- tmp$Domain_est
-NCRMP_PRICO_2014_23_Domain_check <- tmp$Domain_check # Make sure your cover groups add up to close to 100%
-cover_check_site <- tmp$cover_check_site
-# For the domain check, if this number if not very close to 100, there is likely something wrong with your ntot. Any strata that # was not sampled that year needs to be removed from the ntot BEFORE ngrot is calculated. Slight variations # from 100 could be due to using the most recent NTOT file for past years, this is ok.
-# Export data 
-write.csv(NCRMP_PRICO_2014_23_percent_cover_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\NCRMP_PRICO_2014_23_percent_cover_species.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_percent_cover_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_PRICO_2014_23_percent_cover_site.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_cover_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_PRICO_2014_23_cover_strata.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_23_cover_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_PRICO_2014_23_cover_region.csv", row.names = F)
-#usethis::use_data(NCRMP_PRICO_2014_21_percent_cover_species,  overwrite = TRUE)
-save(NCRMP_PRICO_2014_23_percent_cover_species, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_2014_23_percent_cover_species.rda")
-#usethis::use_data(NCRMP_PRICO_2014_21_percent_cover_site,  overwrite = TRUE)
-save(NCRMP_PRICO_2014_23_percent_cover_site, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_2014_23_percent_cover_site.rda")
-#usethis::use_data(NCRMP_PRICO_2014_21_cover_strata,  overwrite = TRUE)
-save(NCRMP_PRICO_2014_23_cover_strata, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_2014_23_cover_strata.rda")
-#usethis::use_data(NCRMP_PRICO_2014_21_cover_region,  overwrite = TRUE)
-save(NCRMP_PRICO_2014_23_cover_region, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_2014_23_cover_region.rda")
-# remove old versions of objects
-```
+
 ###### Species
 ```{r}
 # Run function and assign names to dataframes 
@@ -2990,32 +2187,48 @@ save(NCRMP_PRICO_2014_23_invert_den_strata, file = "~/Desktop/OneDrive - Univers
 # usethis::use_data(NCRMP_PRICO_2014_21_invert_den_region,  overwrite = TRUE)
 save(NCRMP_PRICO_2014_23_invert_den_region, file = "~/Desktop/OneDrive - University of Miami/NOAA_NCRMP/ncrmp.benthics.analysis/data/NCRMP_PRICO_2014_23_invert_den_region.rda")
 ```
+
+
+
+
+
+
+
+
 # ESA Corals P/A
 ```{r}
 tmp <- NCRMP_calculate_ESA_corals_PresAbs()
+
 NCRMP_AllRegions_Years_ESA_PresAbs_Strat <- tmp$NCRMP_AllRegions_Years_ESA_PresAbs_Strat
 NCRMP_AllRegions_Years_ESA_PresAbs_Site <- tmp$NCRMP_AllRegions_Years_ESA_PresAbs_Site
+
 region_year <- tmp$region_year # Check to make sure every region/year is accounted for 
+
 write.csv(NCRMP_AllRegions_Years_ESA_PresAbs_Strat, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\ESA species\\NCRMP_AllRegions_Years_ESA_PresAbs_Strat.csv", row.names = F)
 write.csv(NCRMP_AllRegions_Years_ESA_PresAbs_Site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\ESA species\\NCRMP_AllRegions_Years_ESA_PresAbs_Site.csv", row.names = F)
-#usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Strat,  overwrite = TRUE)
-save(NCRMP_AllRegions_Years_ESA_PresAbs_Strat, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_AllRegions_Years_ESA_PresAbs_Strat.rda")
-#usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Site,  overwrite = TRUE)
-save(NCRMP_AllRegions_Years_ESA_PresAbs_Site, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_AllRegions_Years_ESA_PresAbs_Site.rda")
+
+usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Strat,  overwrite = TRUE)
+#save(NCRMP_AllRegions_Years_ESA_PresAbs_Strat, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_AllRegions_Years_ESA_PresAbs_Strat.rda")
+usethis::use_data(NCRMP_AllRegions_Years_ESA_PresAbs_Site,  overwrite = TRUE)
+#save(NCRMP_AllRegions_Years_ESA_PresAbs_Site, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_AllRegions_Years_ESA_PresAbs_Site.rda")
 ```
 # ESA FOI 
 ```{r}
 tmp <- NCRMP_make_ESA_corals_FOI()
+
 NCRMP_ESA_FOI_region <- tmp$FOI_region
 NCRMP_ESA_FOI_species <- tmp$FOI_species
+
 write.csv(NCRMP_ESA_FOI_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\ESA species\\NCRMP_ESA_FOI_region.csv", row.names = F)
 write.csv(NCRMP_ESA_FOI_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\ESA species\\NCRMP_ESA_FOI_species.csv", row.names = F)
-#usethis::use_data(NCRMP_ESA_FOI_region,  overwrite = TRUE)
-#usethis::use_data(NCRMP_ESA_FOI_species,  overwrite = TRUE)
-save(NCRMP_ESA_FOI_region, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_ESA_FOI_region.rda")
-# 
-save(NCRMP_ESA_FOI_species, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_ESA_FOI_species.rda")
+
+usethis::use_data(NCRMP_ESA_FOI_region,  overwrite = TRUE)
+usethis::use_data(NCRMP_ESA_FOI_species,  overwrite = TRUE)
+
+#save(NCRMP_ESA_FOI_region, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_ESA_FOI_region.rda")
+#save(NCRMP_ESA_FOI_species, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_ESA_FOI_species.rda")
 ```
+
 # Bleaching abundance 
 ```{r}
 # If updating with a new year, you need to run the below code chunk to update
@@ -3023,7 +2236,7 @@ save(NCRMP_ESA_FOI_species, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.b
 tmp <- NCRMP_make_bleaching_abundance()
 NCRMP_bleaching_abundance_Allyears_Allregions <- tmp$NCRMP_bleaching_abundance_Allyears_Allregions
 write.csv(NCRMP_bleaching_abundance_Allyears_Allregions, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Bleaching and Disease\\NCRMP_bleaching_abundance_Allyears_Allregions.csv", row.names = F)
-save(NCRMP_bleaching_abundance_Allyears_Allregions, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_bleaching_abundance_Allyears_Allregions.rda")
+#save(NCRMP_bleaching_abundance_Allyears_Allregions, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_bleaching_abundance_Allyears_Allregions.rda")
 ```
 # Combine regions
 ## Coral demographics
@@ -3112,149 +2325,106 @@ write.csv(NCRMP_benthic_cover_All_regions_years, "K:\\_BioGeoProjects\\NCRMP\\Da
 #usethis::use_data(NCRMP_benthic_cover_All_regions_years,  overwrite = TRUE)
 save(NCRMP_benthic_cover_All_regions_years, file = "C:/Users/Lexie.Sturm/Documents/ncrmp/ncrmp.benthics.analysis/data/NCRMP_benthic_cover_All_regions_years.rda")
 ```
-# DRM + SCREAM pre NCRMP metrics
-##### Coral density - DRM + SCREAM
+
+
+
+
+#### DRM+SCREAM pre NCRMP metrics
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_colony_density(project = "DRM_SCREAM", 
+
+SCREAM_coral_density <- function(project, species_filter = FALSE, start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_colony_density(project = project, 
                                            species_filter = "FALSE")
-DRM_SCREAM_FL_1999_13_density_species <- tmp$density_species
-DRM_SCREAM_FL_1999_13_density_site <- tmp$density_site
-DRM_SCREAM_FL_1999_13_density_strata <- tmp$density_strata
-DRM_SCREAM_FL_1999_13_density_region <- tmp$Domain_est
-# Export data 
-write.csv(DRM_SCREAM_FL_1999_13_density_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\DRM_SCREAM_FL_1999_13_density_species.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_density_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\DRM_SCREAM_FL_1999_13_density_site.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_density_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\DRM_SCREAM_FL_1999_13_density_strata.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_density_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\DRM_SCREAM_FL_1999_13_density_region.csv", row.names = F)
-# usethis::use_data(DRM_SCREAM_FL_1999_13_density_species,  overwrite = TRUE)
-save(DRM_SCREAM_FL_1999_13_density_species, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/DRM_SCREAM_FL_1999_13_density_species.rda")
-# usethis::use_data(DRM_SCREAM_FL_1999_13_density_site,  overwrite = TRUE)
-save(DRM_SCREAM_FL_1999_13_density_site, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/DRM_SCREAM_FL_1999_13_density_site.rda")
-# usethis::use_data(DRM_SCREAM_FL_1999_13_density_strata,  overwrite = TRUE)
-save(DRM_SCREAM_FL_1999_13_density_strata, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/DRM_SCREAM_FL_1999_13_density_strata.rda")
-# usethis::use_data(DRM_SCREAM_FL_1999_13_density_region,  overwrite = TRUE)
-save(DRM_SCREAM_FL_1999_13_density_region, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/DRM_SCREAM_FL_1999_13_density_region.rda")
+  
+    prep_csv <- function(dataset_name_string, dataset, location){
+    
+    
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+    }
+   
+  prep_csv("density_site", call_data$density_site, site_level_metrics)  
+  prep_csv("density_strata", call_data$density_strata, strata_level_metrics)  
+  prep_csv("density_region", call_data$Domain_est, domain_est)
+  
+      if (project == "DRM_SCREAM" || project == "SCREAM"){
+      prep_csv("density_species", call_data$density_species, species_level_metrics) 
+    }
+}
+
+SCREAM_coral_density(project = "DRM_SCREAM", start_year = 1999, end_year = 13)
+
 ```
-##### Coral density - SCREAM
+
+####SCREAM Mortality
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_colony_density(project = "SCREAM", 
-                                           species_filter = "FALSE")
-SCREAM_FL_1999_12_density_species <- tmp$density_species
-SCREAM_FL_1999_12_density_site <- tmp$density_site
-SCREAM_FL_1999_12_density_strata <- tmp$density_strata
-SCREAM_FL_1999_12_density_region <- tmp$Domain_est
-# Export data 
-write.csv(SCREAM_FL_1999_12_density_species, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Species level metrics\\SCREAM_FL_1999_12_density_species.csv", row.names = F)
-write.csv(SCREAM_FL_1999_12_density_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\SCREAM_FL_1999_12_density_site.csv", row.names = F)
-write.csv(SCREAM_FL_1999_12_density_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\SCREAM_FL_1999_12_density_strata.csv", row.names = F)
-write.csv(SCREAM_FL_1999_12_density_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\SCREAM_FL_1999_12_density_region.csv", row.names = F)
-# usethis::use_data(SCREAM_FL_1999_12_density_species,  overwrite = TRUE)
-save(SCREAM_FL_1999_12_density_species, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/SCREAM_FL_1999_12_density_species.rda")
-# usethis::use_data(SCREAM_FL_1999_12_density_site,  overwrite = TRUE)
-save(SCREAM_FL_1999_12_density_site, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/SCREAM_FL_1999_12_density_site.rda")
-# usethis::use_data(SCREAM_FL_1999_12_density_strata,  overwrite = TRUE)
-save(SCREAM_FL_1999_12_density_strata, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/SCREAM_FL_1999_12_density_strata.rda")
-# usethis::use_data(SCREAM_FL_1999_12_density_region,  overwrite = TRUE)
-save(SCREAM_FL_1999_12_density_region, file = "C:/Users/Sarah.Groves/Documents/R packages/NCRMP/ncrmp.benthics.analysis/data/SCREAM_FL_1999_12_density_region.rda")
+
+SCREAM_mortality <- function( project, start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_mortality(project = project, species_filter = "FALSE")
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+    
+    
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+  prep_csv("old_mort_site", call_data$old_mortality_site, site_level_metrics)  
+  prep_csv("rec_mort_site", call_data$recent_mortality_site, site_level_metrics)  
+  prep_csv("old_mort_strata", call_data$old_mortality_strata, strata_level_metrics)  
+  prep_csv("rec_mort_strata", call_data$rec_mortality_strata, strata_level_metrics)  
+  prep_csv("old_mort_region", call_data$Domain_est_old_mort, domain_est)
+  prep_csv("rec_mort_region", call_data$Domain_est_rec_mort, site_level_metrics)
+  #prep_csv("old_mort_species_region", call_data$Domain_est_old_mort_species, strata_level_metrics)
+  #prep_csv("rec_mort_species_region", call_data$Domain_est_rec_mort_species, domain_est)
+
+}
+
+SCREAM_mortality( project = "DRM_SCREAM",  start_year = 1999, end_year =13 )
 ```
-##### Coral density - DRM
+
+####SCREAM Disease
 ```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_colony_density(project = "DRM",
-                                           species_filter = "FALSE")
-DRM_FL_2005_13_density_site <- tmp$density_site
-DRM_FL_2005_13_density_strata <- tmp$density_strata
-DRM_FL_2005_13_density_region <- tmp$Domain_est
-# Export data 
-write.csv(DRM_FL_2005_13_density_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_FL_2005_13_density_site.csv", row.names = F)
-write.csv(DRM_FL_2005_13_density_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_FL_2005_13_density_strata.csv", row.names = F)
-write.csv(DRM_FL_2005_13_density_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_FL_2005_13_density_region.csv", row.names = F)
-usethis::use_data(DRM_FL_2005_13_density_site,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_density_strata,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_density_region,  overwrite = TRUE)
+SCREAM_disease_prev_colonies <- function(project,  start_year, end_year ){
+  
+  call_data <- DRM_SCREAM_calculate_disease_prevalence(project = project,
+                                                      
+                                                       species_filter = "FALSE")
+  
+  
+  prep_csv <- function(dataset_name_string, dataset, location){
+
+    file_name <- paste(project, "FL", start_year, end_year, dataset_name_string, sep = "_")    
+    assign(file_name, value = dataset, envir = .GlobalEnv)
+    make_data_path <- paste(paste(location, dataset_name_string, sep = "\\"), "csv", sep = ".")
+    write_csv(get(file_name), make_data_path)
+    final_data <- get(file_name)
+    usethis::use_data(final_data, overwrite = TRUE)
+  }
+
+ # prep_csv("dis_ble_prev_species", call_data$dis_ble_prev_species, species_level_metrics) 
+  prep_csv("dis_prev_site", call_data$disease_prev_site, site_level_metrics)  
+  prep_csv("dis_prev_strata", call_data$unwh_dis_prev_strata, strata_level_metrics)  
+  #prep_csv("ble_prev_strata", call_data$ble_prev_strata, strata_level_metrics)
+  prep_csv("dis_prev_region", call_data$Domain_est, domain_est)
+  
+
+}
+
+SCREAM_disease_prev_colonies( project = "DRM", start_year = 1999, end_year =13)
 ```
-##### Mortality - DRM + SCREAM 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_mortality(project = "DRM_SCREAM",
-                                      species_filter = "FALSE")
-DRM_SCREAM_FL_1999_13_old_mort_site <- tmp$old_mortality_site
-DRM_SCREAM_FL_1999_13_rec_mort_site <- tmp$recent_mortality_site
-DRM_SCREAM_FL_1999_13_old_mort_strata <- tmp$old_mortality_strata
-DRM_SCREAM_FL_1999_13_rec_mort_strata <- tmp$rec_mortality_strata
-DRM_SCREAM_FL_1999_13_old_mort_region <- tmp$Domain_est_old_mort
-DRM_SCREAM_FL_1999_13_rec_mort_region <- tmp$Domain_est_rec_mort
-# Export data 
-write.csv(DRM_SCREAM_FL_1999_13_old_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_SCREAM_FL_1999_13_old_mort_site.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_rec_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_PRICO_14_16_rec_mort_site.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_old_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_SCREAM_FL_1999_13_old_mort_strata.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_rec_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_SCREAM_FL_1999_13_rec_mort_strata.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_old_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_SCREAM_FL_1999_13_old_mort_region.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_rec_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_SCREAM_FL_1999_13_rec_mort_region.csv", row.names = F)
-usethis::use_data(DRM_SCREAM_FL_1999_13_rec_mort_site,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_old_mort_site,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_rec_mort_strata,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_old_mort_strata,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_rec_mort_region,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_old_mort_region,  overwrite = TRUE)
-```
-##### Mortality - DRM
-```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_mortality(project = "DRM",
-                                      species_filter = "FALSE")
-DRM_FL_2005_13_old_mort_site <- tmp$old_mortality_site
-DRM_FL_2005_13_rec_mort_site <- tmp$recent_mortality_site
-DRM_FL_2005_13_old_mort_strata <- tmp$old_mortality_strata
-DRM_FL_2005_13_rec_mort_strata <- tmp$rec_mortality_strata
-DRM_FL_2005_13_old_mort_region <- tmp$Domain_est_old_mort
-DRM_FL_2005_13_rec_mort_region <- tmp$Domain_est_rec_mort
-# Export data 
-write.csv(DRM_FL_2005_13_old_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_FL_2005_13_old_mort_site.csv", row.names = F)
-write.csv(DRM_FL_2005_13_rec_mort_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_PRICO_14_16_rec_mort_site.csv", row.names = F)
-write.csv(DRM_FL_2005_13_old_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_FL_2005_13_old_mort_strata.csv", row.names = F)
-write.csv(DRM_FL_2005_13_rec_mort_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_FL_2005_13_rec_mort_strata.csv", row.names = F)
-write.csv(DRM_FL_2005_13_old_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_FL_2005_13_old_mort_region.csv", row.names = F)
-write.csv(DRM_FL_2005_13_rec_mort_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_FL_2005_13_rec_mort_region.csv", row.names = F)
-usethis::use_data(DRM_FL_2005_13_rec_mort_site,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_old_mort_site,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_rec_mort_strata,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_old_mort_strata,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_rec_mort_region,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_old_mort_region,  overwrite = TRUE)
-```
-##### Disease prevalence - SCREAM + DRM 
-```{r}
-tmp <- DRM_SCREAM_calculate_disease_prevalence(project = "DRM_SCREAM",
-                                               species_filter = "FALSE")
-DRM_SCREAM_FL_1999_13_dis_prev_site <- tmp$disease_prev_site
-DRM_SCREAM_FL_1999_13_dis_prev_strata <- tmp$dis_prev_strata 
-DRM_SCREAM_FL_1999_13_dis_prev_region <- tmp$Domain_est
-# Export data 
-write.csv(DRM_SCREAM_FL_1999_13_dis_prev_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_SCREAM_FL_1999_13_dis_prev_site.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_dis_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_SCREAM_FL_1999_13_dis_prev_strata.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_dis_prev_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_SCREAM_FL_1999_13_dis_prev_region.csv", row.names = F)
-usethis::use_data(DRM_SCREAM_FL_1999_13_dis_prev_site,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_dis_prev_strata,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_dis_prev_region,  overwrite = TRUE)
-```
-#####  DRM only Disease prevalence 
-```{r}
-tmp <- DRM_SCREAM_calculate_disease_prevalence(project = "DRM",
-                                               species_filter = "FALSE")
-DRM_FL_2005_13_dis_prev_site <- tmp$disease_prev_site
-DRM_FL_2005_13_dis_prev_strata <- tmp$dis_prev_strata 
-DRM_FL_2005_13_dis_prev_region <- tmp$Domain_est
-# Export data 
-write.csv(DRM_FL_2005_13_dis_prev_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_FL_2005_13_dis_prev_site.csv", row.names = F)
-write.csv(DRM_FL_2005_13_dis_prev_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_FL_2005_13_dis_prev_strata.csv", row.names = F)
-write.csv(DRM_FL_2005_13_dis_prev_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_FL_2005_13_dis_prev_region.csv", row.names = F)
-usethis::use_data(DRM_FL_2005_13_dis_prev_site,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_dis_prev_strata,  overwrite = TRUE)
-usethis::use_data(DRM_FL_2005_13_dis_prev_region,  overwrite = TRUE)
-```
+
 ## Combine preNCRMP AR DRM and SCREAM data 
 ```{r SCREAM}
 # Temporarily set the SCREAM file as the wd. It will revert back to the parent folder as soon
@@ -3281,250 +2451,4 @@ DRM <- DRM %>%
 ```{r DRM}
 preNCRMP_SCREAM_DRM_coral_demographics <- as.data.frame(dplyr::bind_rows(SCREAM, DRM))
 usethis::use_data(preNCRMP_SCREAM_DRM_coral_demographics, overwrite = TRUE)
-```
-# DEPRECATED OUTPUTS
-##### Species richness - GOM
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_FRRP_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region = "GOM",
-                                                       analysis_strat = "HABITAT_DEPTH")
-NCRMP_FGBNMS_2013_18_spp_list <- tmp$species_list 
-NCRMP_FGBNMS_2013_18_richness_site <- tmp$richness_site
-NCRMP_FGBNMS_2013_18_richness_strata <- tmp$richness_strata
-NCRMP_FGBNMS_2013_18_richness_region <- tmp$Domain_est
-NCRMP_FGBNMS_2013_18_diversity_site <- tmp$species_diversity_site
-NCRMP_FGBNMS_2013_18_diversity_strata <- tmp$diversity_strata
-NCRMP_FGBNMS_2013_18_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_FGBNMS_2013_18_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_FGBNMS_2013_18_richness_site.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_18_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_FGBNMS_2013_18_richness_strata.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_18_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_FGBNMS_2013_18_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_FGBNMS_2013_18_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_18_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_18_richness_region,  overwrite = TRUE)
-# Diversity 
-write.csv(NCRMP_FGBNMS_2013_18_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_FGBNMS_2013_18_diversity_site.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_18_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_FGBNMS_2013_18_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_FGBNMS_2013_18_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_FGBNMS_2013_18_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_FGBNMS_2013_18_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_18_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_FGBNMS_2013_18_diversity_region,  overwrite = TRUE)
-```
-##### Species richness - STX
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                      region = "STX")
-NCRMP_STX_2015_21_spp_list <- tmp$species_list 
-NCRMP_STX_2015_21_richness_site <- tmp$richness_site
-NCRMP_STX_2015_21_richness_strata <- tmp$richness_strata
-NCRMP_STX_2015_21_richness_region <- tmp$Domain_est
-NCRMP_STX_2015_21_diversity_site <- tmp$species_diversity_site
-NCRMP_STX_2015_21_diversity_strata <- tmp$diversity_strata
-NCRMP_STX_2015_21_diversity_region <- tmp$Domain_est_div
-# Export data 
-write.csv(NCRMP_STX_2015_21_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STX_2015_21_richness_site.csv", row.names = F)
-write.csv(NCRMP_STX_2015_21_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STX_2015_21_richness_strata.csv", row.names = F)
-write.csv(NCRMP_STX_2015_21_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STX_2015_21_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_STX_2015_21_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_21_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_21_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_STX_2015_21_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STX_2015_21_diversity_site.csv", row.names = F)
-write.csv(NCRMP_STX_2015_21_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STX_2015_21_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_STX_2015_21_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STX_2015_21_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_STX_2015_21_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_21_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STX_2015_21_diversity_region,  overwrite = TRUE)
-```
-##### Species richness - STTSTJ
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                      region = "STTSTJ")
-NCRMP_STTSTJ_2013_19_spp_list <- tmp$species_list 
-NCRMP_STTSTJ_2013_19_richness_site <- tmp$richness_site
-NCRMP_STTSTJ_2013_19_richness_strata <- tmp$richness_strata
-NCRMP_STTSTJ_2013_19_richness_region <- tmp$Domain_est
-NCRMP_STTSTJ_2013_19_diversity_site <- tmp$species_diversity_site
-NCRMP_STTSTJ_2013_19_diversity_strata <- tmp$diversity_strata
-NCRMP_STTSTJ_2013_19_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_STTSTJ_2013_19_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STTSTJ_2013_19_richness_site.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_19_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STTSTJ_2013_19_richness_strata.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_19_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STTSTJ_2013_19_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_STTSTJ_2013_19_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_19_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_19_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_STTSTJ_2013_19_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_STTSTJ_2013_19_diversity_site.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_19_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_STTSTJ_2013_19_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_STTSTJ_2013_19_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_STTSTJ_2013_19_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_STTSTJ_2013_19_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_19_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_STTSTJ_2013_19_diversity_region,  overwrite = TRUE)
-```
-#### Species richness - PRICO
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                      region= "PRICO")
-NCRMP_PRICO_2014_21_spp_list <- tmp$species_list 
-NCRMP_PRICO_2014_21_richness_site <- tmp$richness_site
-NCRMP_PRICO_2014_21_richness_strata <- tmp$richness_strata
-NCRMP_PRICO_2014_19_richness_region <- tmp$Domain_est
-NCRMP_PRICO_2014_19_diversity_site <- tmp$species_diversity_site
-NCRMP_PRICO_2014_19_diversity_strata <- tmp$diversity_strata
-NCRMP_PRICO_2014_19_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness 
-write.csv(NCRMP_PRICO_2014_19_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_PRICO_2014_19_richness_site.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_19_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_PRICO_2014_19_richness_strata.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_19_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_PRICO_2014_19_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_PRICO_2014_19_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_19_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_19_richness_region,  overwrite = TRUE) 
-# Diversity
-write.csv(NCRMP_PRICO_2014_19_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Site level metrics\\NCRMP_PRICO_2014_19_diversity_site.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_19_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Strata level metrics\\NCRMP_PRICO_2014_19_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_PRICO_2014_19_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\R Package Exports\\Domain estimates\\NCRMP_PRICO_2014_19_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_PRICO_2014_19_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_19_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_PRICO_2014_19_diversity_region,  overwrite = TRUE)
-```
-##### Species richness - SEFCRI - NCRMP only - DEPRECATED
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_FRRP_calculate_species_richness_diversity(project = "NCRMP",
-                                                       region= "SEFCRI",
-                                                       analysis_strat = "STRAT_PROT")
-NCRMP_SEFCRI_2014_16_spp_list <- tmp$species_list 
-NCRMP_SEFCRI_2014_16_richness_site <- tmp$richness_site
-NCRMP_SEFCRI_2014_16_richness_strata <- tmp$richness_strata
-NCRMP_SEFCRI_2014_16_richness_region <- tmp$Domain_est
-NCRMP_SEFCRI_2014_16_diversity_site <- tmp$species_diversity_site
-NCRMP_SEFCRI_2014_16_diversity_strata <- tmp$diversity_strata
-NCRMP_SEFCRI_2014_16_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_SEFCRI_2014_16_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_SEFCRI_14_16_richness_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_16_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_SEFCRI_2014_16_richness_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_16_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_SEFCRI_2014_16_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_SEFCRI_2014_16_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_16_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_16_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_SEFCRI_2014_16_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_SEFCRI_2014_16_diversity_site.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_16_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_SEFCRI_2014_16_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_SEFCRI_2014_16_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_SEFCRI_2014_16_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_SEFCRI_2014_16_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_16_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_SEFCRI_2014_16_diversity_region,  overwrite = TRUE)
-```
-##### DRM Species richness - NCRMP + DRM - DEPRECATED
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_FRRP_calculate_species_richness_diversity(project = "NCRMP_FRRP",
-                                                       region= "SEFCRI",
-                                                       analysis_strat = "STRAT_PROT")
-NCRMP_DRM_SEFCRI_2014_18_spp_list <- tmp$species_list 
-NCRMP_DRM_SEFCRI_2014_18_richness_site <- tmp$richness_site
-NCRMP_DRM_SEFCRI_2014_18_richness_strata <- tmp$richness_strata
-NCRMP_DRM_SEFCRI_2014_18_richness_region <- tmp$Domain_est
-NCRMP_DRM_SEFCRI_2014_18_diversity_site <- tmp$species_diversity_site
-NCRMP_DRM_SEFCRI_2014_18_diversity_strata <- tmp$diversity_strata
-NCRMP_DRM_SEFCRI_2014_18_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_DRM_SEFCRI_2014_18_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_18_richness_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_18_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_18_richness_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_18_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_18_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_DRM_SEFCRI_2014_18_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_DRM_SEFCRI_2014_18_diversity_site.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_18_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_DRM_SEFCRI_2014_18_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_SEFCRI_2014_18_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_DRM_SEFCRI_2014_18_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_SEFCRI_2014_18_diversity_region,  overwrite = TRUE)
-```
-##### Species richness - DRTO - NCRMP only
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP",
-                                                      region= "Tortugas",
-                                                      analysis_strat = "STRAT_PROT")
-NCRMP_Tort_2014_18_spp_list <- tmp$species_list 
-NCRMP_Tort_2014_18_richness_site <- tmp$richness_site
-NCRMP_Tort_2014_18_richness_strata <- tmp$richness_strata
-NCRMP_Tort_2014_18_richness_region <- tmp$Domain_est
-NCRMP_Tort_2014_18_diversity_site <- tmp$species_diversity_site
-NCRMP_Tort_2014_18_diversity_strata <- tmp$diversity_strata
-NCRMP_Tort_2014_18_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_Tort_2014_18_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_Tort_2014_18_richness_site.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_18_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_Tort_2014_18_richness_strata.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_18_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_Tort_2014_18_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_Tort_2014_18_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_18_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_18_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_Tort_2014_18_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_Tort_2014_18_diversity_site.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_18_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_Tort_2014_18_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_Tort_2014_18_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_Tort_2014_18_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_Tort_2014_18_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_18_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_Tort_2014_18_diversity_region,  overwrite = TRUE)
-# Don't forget to delete the previous years output in the R package and in the Data Queries folder 
-```
-##### DRM Species richness - NCRMP + DRM 
-```{r}
-# Run function and assign names to dataframes 
-tmp <- NCRMP_DRM_calculate_species_richness_diversity(project = "NCRMP_FRRP",
-                                                      region = "Tortugas",
-                                                      analysis_strat = "STRAT_PROT")
-NCRMP_DRM_Tort_2014_18_spp_list <- tmp$species_list 
-NCRMP_DRM_Tort_2014_18_richness_site <- tmp$richness_site
-NCRMP_DRM_Tort_2014_18_richness_strata <- tmp$richness_strata
-NCRMP_DRM_Tort_2014_18_richness_region <- tmp$Domain_est
-NCRMP_DRM_Tort_2014_18_diversity_site <- tmp$species_diversity_site
-NCRMP_DRM_Tort_2014_18_diversity_strata <- tmp$diversity_strata
-NCRMP_DRM_Tort_2014_18_diversity_region <- tmp$Domain_est_div
-# Export data 
-# Richness
-write.csv(NCRMP_DRM_Tort_2014_18_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_DRM_Tort_2014_18_richness_site.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_18_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_DRM_Tort_2014_18_richness_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_18_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_DRM_Tort_2014_18_richness_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_richness_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_richness_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_richness_region,  overwrite = TRUE)
-# Diversity
-write.csv(NCRMP_DRM_Tort_2014_18_diversity_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\NCRMP_DRM_Tort_2014_18_diversity_site.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_18_diversity_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\NCRMP_DRM_Tort_2014_18_diversity_strata.csv", row.names = F)
-write.csv(NCRMP_DRM_Tort_2014_18_diversity_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\NCRMP_DRM_Tort_2014_18_diversity_region.csv", row.names = F)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_diversity_site,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_diversity_strata,  overwrite = TRUE)
-usethis::use_data(NCRMP_DRM_Tort_2014_18_diversity_region,  overwrite = TRUE)
-```
-##### Species Richness - SCREAM + DRM
-```{r}
-# Run function and assign names to dataframes 
-tmp <- DRM_SCREAM_calculate_species_richness_diversity()
-DRM_SCREAM_FL_1999_13_species_list <- tmp$
-  DRM_SCREAM_FL_1999_13_richness_strata <- tmp$richness_site
-DRM_SCREAM_FL_1999_13_richness_strata <- tmp$richness_strata
-DRM_SCREAM_FL_1999_13_richness_strata <- tmp$Domain_est
-# Export data 
-write.csv(DRM_SCREAM_FL_1999_13_richness_site, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Site level metrics\\DRM_SCREAM_FL_1999_13_richness_site.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_richness_strata, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Strata level metrics\\DRM_SCREAM_FL_1999_13_richness_strata.csv", row.names = F)
-write.csv(DRM_SCREAM_FL_1999_13_richness_region, "K:\\_BioGeoProjects\\NCRMP\\Data Analysis\\Analysis ready data\\Data Queries\\Domain estimates\\DRM_SCREAM_FL_1999_13_richness_region.csv", row.names = F)
-usethis::use_data(DRM_SCREAM_FL_1999_13_richness_site,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_richness_strata,  overwrite = TRUE)
-usethis::use_data(DRM_SCREAM_FL_1999_13_richness_region,  overwrite = TRUE)
 ```
