@@ -6,17 +6,40 @@ editor: visual
 ---
 
 ```{r}
-
-
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(cowplot)
+library(grid)
+library(ggthemes)
+library(extrafont)
+library(ncrmp.benthics.analysis)
+library(grid)
+library(ggthemes)
+library(extrafont)
+library(shinydashboard)
+library(shiny)
 library(plotly)
+library(tidyverse)
+library(ncrmp.benthics.analysis)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(egg)
+library(leaflet)
+library(leaflet.extras)
+```
 
-# Sample data
-p <- plot_ly(
-  data = iris, 
-  x = ~Sepal.Length, 
-  y = ~Sepal.Width, 
-  color = ~Species, 
-  type = 'scatter', 
-  mode = 'markers')
-p
+```{r}
+#| panel: sidebar
+
+selectInput('region', 'Pick Region',choices = c("SEFCRI", "PRICO") )
+selectInput('ycol', 'Y Variable', vars, selected = vars[[2]])
+numericInput('clusters', 'Cluster count', 3, min = 1, max = 9)
+
+renderText({
+  paste("You selected:", input$region)
+})
+
+
 ```
