@@ -1,0 +1,651 @@
+---
+title: "FinalTechMemoQuarto"
+format: html
+editor: visual
+---
+
+## Quarto
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(cowplot)
+library(grid)
+library(ggthemes)
+library(extrafont)
+library(ncrmp.benthics.analysis)
+library(grid)
+library(ggthemes)
+library(extrafont)
+library(shinydashboard)
+library(shiny)
+library(plotly)
+library(tidyverse)
+library(ncrmp.benthics.analysis)
+library(ggplot2)
+library(cowplot)
+library(gridExtra)
+library(egg)
+library(leaflet)
+library(leaflet.extras)
+
+```
+
+```{r}
+
+#user pick region
+PICK_REGION_CODE <- "Tortugas"
+YEAR <- 2022
+
+
+
+
+SPECIES_LIST <- c("Pseudodiploria strigosa", "Mycetophyllia aliciae", "Siderastrea radians", "Stephanocoenia intersepta", "Agaricia humilis", "Eusmilia fastigiata", "Agaricia lamarcki", "Diploria labyrinthiformis", "Porites astreoides", "Dichocoenia stokesii", "Acropora cervicornis", "Colpophyllia natans")
+
+```
+
+```{r}
+
+size_freq_fig <- function(region, species) {
+  
+  region_lookup <- function(region) {
+    case_when(
+      region == "Southeast Florida" ~ "SEFCRI",
+      region == "Florida Keys" ~ "FLK",
+      region == "Dry Tortugas" ~ "Tortugas",
+      region == "Flower Gardens" ~ "GOM",
+      region == "Puerto Rico" ~ "PRICO",
+      region == "St. Thomas & St. John" ~ "STTSTJ",
+      region == "St. Croix" ~ "STX"
+    )
+  }
+  
+  region_code <- region_lookup(region)
+  
+  region_years <- list(
+    'FLK' = c(2014, 2018, 2022),
+    'SEFCRI' = c(2014, 2018, 2022),
+    'Tortugas' = c(2014, 2018, 2022),
+    'PRICO' = c(2019,2021, 2023),
+    'STX' = c(2019, 2021, 2023),
+    'STTSTJ' = c(2019, 2022, 2023),
+    'GOM' = c(2015,2018, 2022)
+  )
+  
+  spp1 <- species
+  
+  tmp <- NCRMP_make_size_bins(region = region_code, project = "NCRMP", years = region_years[[region_code]])
+  
+  
+  domain_sub <- tmp$length_freq_domain_est %>%
+    mutate(YEAR = ifelse(YEAR == "2020", "2021", as.character(YEAR))) %>%
+    mutate(YEAR = as.factor(YEAR)) %>%
+    subset(SPECIES_NAME == spp1)
+  
+  demos_sub <- tmp$length_demos %>%
+    mutate(YEAR = ifelse(YEAR == "2020", "2021", as.character(YEAR))) %>%
+    mutate(YEAR = as.factor(YEAR)) %>%
+    subset(SPECIES_NAME == spp1)
+  
+  domain_sub <- domain_sub %>%
+    tidyr::expand(., REGION, SPECIES_NAME, SPECIES_CD, YEAR, bin_num) %>%
+    dplyr::full_join(., domain_sub, by = c('REGION', 'SPECIES_NAME',"SPECIES_CD", "YEAR", "bin_num")) %>%
+    dplyr::mutate(length_freq_domain = ifelse(is.na(length_freq_domain), 0, length_freq_domain))
+  
+  print(domain_sub)
+  print(demos_sub)
+  n_bins <- max(demos_sub$n_bins)
+  text_size = 14
+  angle = 45
+  hjust = 1
+  
+  min <- min(demos_sub$min)
+  bin_width <- min(demos_sub$bin_width)
+  
+  lab_vec = c(" 4- 10", " 11-15", " 16-20", " 21-25", " 26-30", " 31-35", " 36-45", " 46-65", " 66-85", " 86-105", "106+")
+  
+  p1 <- ggplot(data = domain_sub, 
+               aes(x = as.integer(bin_num),
+                   y = length_freq_domain, fill = YEAR)) +
+
+    geom_bar(stat="identity", position = "dodge2", width = .9, color="black", size=.5) +
+    
+    theme_minimal() + 
+    facet_wrap(~SPECIES_NAME) +
+    labs(x = "Length (cm)", y = "Frequency") +
+    scale_x_continuous(breaks = seq_along(lab_vec), labels = lab_vec) +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 1.1)) +
+    ggtitle(region) +
+    theme(axis.text.x = element_text(size = text_size, angle = angle, hjust = hjust),
+          strip.text = element_text(face = "italic")) +
+    scale_fill_manual(values=c('deepskyblue4','springgreen3','gold1')) +
+    scale_color_manual(values=c('deepskyblue4','springgreen3','gold1'))
+  
+  print(p1)
+}
+
+```
+
+```{r}
+  theme_Publication <- function(base_size=14, base_family = 'Arial') {
+
+  (theme_foundation(base_size=base_size, base_family=base_family)
+    + theme(plot.title = element_text(face = "bold",
+                                      size = rel(1.2), hjust = 0.5),
+            text = element_text(),
+            panel.background = element_rect(colour = NA),
+            panel.spacing.x = unit(8, "mm"),
+            plot.background = element_rect(colour = NA),
+            panel.border = element_rect(colour = "grey50", size = 1),
+            axis.title = element_text(face = "bold",size = rel(1)),
+            axis.title.y = element_text(angle=90,vjust =2),
+            axis.title.x = element_text(vjust = -0.2),
+            axis.text = element_text(),
+            axis.line.x = element_line(colour="grey50", size = 1),
+            axis.line.y = element_line(colour="grey50", size = 1),
+            axis.ticks = element_line(),
+            panel.grid.major = element_line(colour="#f0f0f0"),
+            panel.grid.minor = element_line(colour="#f0f0f0"),
+            legend.key = element_rect(colour = NA),
+            legend.position = "bottom",
+            legend.direction = "horizontal",
+            legend.key.size= unit(0.5, "cm"),
+            legend.margin = margin(0,0,0,0, "cm"),
+            legend.title = element_text(face="italic"),
+            plot.margin=unit(c(10,5,5,5),"mm"),
+            strip.background=element_blank(),
+            strip.text = element_text(face="plain")
+    ))
+  
+}
+```
+
+```{r}
+
+
+new_bleaching_disease <- function(region, species_list) {
+  
+  theme_Publication <- function(base_size=14, base_family = 'Arial') {
+
+  (theme_foundation(base_size=base_size, base_family=base_family)
+    + theme(plot.title = element_text(face = "bold",
+                                      size = rel(1.2), hjust = 0.5),
+            text = element_text(),
+            panel.background = element_rect(colour = NA),
+            panel.spacing.x = unit(8, "mm"),
+            plot.background = element_rect(colour = NA),
+            panel.border = element_rect(colour = "grey50", size = 1),
+            axis.title = element_text(face = "bold",size = rel(1)),
+            axis.title.y = element_text(angle=90,vjust =2),
+            axis.title.x = element_text(vjust = -0.2),
+            axis.text = element_text(),
+            axis.line.x = element_line(colour="grey50", size = 1),
+            axis.line.y = element_line(colour="grey50", size = 1),
+            axis.ticks = element_line(),
+            panel.grid.major = element_line(colour="#f0f0f0"),
+            panel.grid.minor = element_line(colour="#f0f0f0"),
+            legend.key = element_rect(colour = NA),
+            legend.position = "bottom",
+            legend.direction = "horizontal",
+            legend.key.size= unit(0.5, "cm"),
+            legend.margin = margin(0,0,0,0, "cm"),
+            legend.title = element_text(face="italic"),
+            plot.margin=unit(c(10,5,5,5),"mm"),
+            strip.background=element_blank(),
+            strip.text = element_text(face="plain")
+    ))
+  
+}
+  
+  # Select dataset based on region
+  dataset <- switch(region,
+    "Southeast Florida" = SEFCRI_2022_coral_demographics,
+    "Florida Keys" = NCRMP_DRM_FLK_2014_22_dis_prev_species_region,
+    "Dry Tortugas" = NCRMP_DRM_Tort_2014_22_dis_prev_species_region,
+    "Flower Gardens" = NCRMP_FGBNMS_2013_22_dis_prev_species_region,
+    "Puerto Rico" = USVI_2023_coral_demographics,
+    "St Thomas, St John" = USVI_2023_coral_demographics,
+    "St Croix" = USVI_2023_coral_demographics
+  )
+  
+  if (is.null(dataset)) {
+    stop("Invalid region selected or dataset not available.")
+  }
+  
+  # Process the dataset
+  summary <- dataset %>%
+    mutate(
+      SPECIES_NAME = ifelse(SPECIES_NAME == "Orbicella annularis species complex", "Orbicella annularis", SPECIES_NAME),
+      SPECIES_CD = ifelse(SPECIES_NAME == "Orbicella annularis", "ORB ANNU", SPECIES_CD)
+    ) %>%
+    filter(SPECIES_NAME %in% species_list) %>%
+    filter(!grepl("spp", SPECIES_NAME, ignore.case = TRUE)) %>%
+    group_by(SPECIES_NAME) %>%
+    summarise(
+      total_colonies = sum(N, na.rm = TRUE),
+      n_no_bleaching = sum(BLEACH_CONDITION == "N", na.rm = TRUE),
+      n_partial_bleaching = sum(BLEACH_CONDITION == "PB", na.rm = TRUE),
+      n_paling = sum(BLEACH_CONDITION == "P", na.rm = TRUE),
+      n_total_bleaching = sum(BLEACH_CONDITION == "T", na.rm = TRUE),
+      total_bleaching_conditions = n_partial_bleaching + n_paling + n_total_bleaching,
+      n_present_disease = sum(DISEASE == "P", na.rm = TRUE),
+      n_fast_disease = sum(DISEASE == "F", na.rm = TRUE),
+      n_slow_disease = sum(DISEASE == "S", na.rm = TRUE),
+      total_disease_conditions = n_fast_disease + n_slow_disease,
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      prevalence_no_bleaching = n_no_bleaching / total_colonies,
+      prevalence_partial_bleaching = n_partial_bleaching / total_colonies,
+      prevalence_paling = n_paling / total_colonies,
+      prevalence_total_bleaching = n_total_bleaching / total_colonies,
+      prevalence_all_bleaching_conditions = total_bleaching_conditions / total_colonies,
+      prevalence_present_disease = n_present_disease / total_colonies,
+      prevalence_fast_disease = n_fast_disease / total_colonies,
+      prevalence_slow_disease = n_slow_disease / total_colonies,
+      prevalence_all_disease = total_disease_conditions / total_colonies
+    ) %>%
+    filter(!(total_bleaching_conditions == 0 & total_disease_conditions == 0)) %>%
+    mutate(
+      FontFace = ifelse(
+        SPECIES_NAME %in% c("Acropora cervicornis", "Acropora palmata", "Dendrogyra cylindrus", 
+                            "Orbicella annularis", "Orbicella faveolata", "Orbicella franksi", 
+                            "Mycetophyllia ferox"), "bold.italic", "italic"
+      ),
+      combined_label = paste(SPECIES_NAME, "(", total_colonies, ")", sep = "")
+    )
+  
+  # Create the middle plot
+  g.mid <- ggplot(summary, aes(x = 1, y = reorder(SPECIES_NAME, prevalence_all_bleaching_conditions))) +
+    geom_text(aes(label = combined_label, fontface = FontFace), size = 5, hjust = 0.5) +
+    geom_segment(aes(x = 0.9, xend = 0.92, yend = SPECIES_NAME)) +
+    geom_segment(aes(x = 1.08, xend = 1.1, yend = SPECIES_NAME)) +
+    ylab(NULL) +
+    scale_x_continuous(expand = expansion(mult = c(0, 0)), limits = c(0.9, 1.1)) +
+    theme(
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      plot.margin = unit(c(0, 0, 0, 0), "mm")
+    )
+  
+  # Long format data for bleaching
+  ble_long <- summary %>%
+    pivot_longer(
+      cols = starts_with("prevalence_"),
+      names_to = "bleaching_condition",
+      values_to = "prevalence"
+    ) %>%
+    filter(bleaching_condition %in% c("prevalence_partial_bleaching", 
+                                      "prevalence_paling", 
+                                      "prevalence_total_bleaching")) %>%
+    select(SPECIES_NAME, bleaching_condition, prevalence)
+  
+  # Create bleaching plot
+  bleach_plot <- ggplot(ble_long, aes(x = reorder(SPECIES_NAME, prevalence), y = prevalence, fill = bleaching_condition)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Bleaching Prevalence (%)", x = "", y = "Prevalence") +
+    scale_fill_manual(
+      values = c("prevalence_total_bleaching" = "#c5deda",
+                 "prevalence_partial_bleaching" = "#9cb7ac",
+                 "prevalence_paling" = "#a17c9b"),
+      breaks = c("prevalence_paling", "prevalence_partial_bleaching", "prevalence_total_bleaching"),
+      labels = c("Paling", "Partial", "Total"),
+      name = NULL
+    ) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0)), limits = c(0, max(ble_long$prevalence) * 1.1)) +
+    theme_Publication(base_size = 16) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = "bottom",
+      plot.title = element_text(hjust = 0.5)
+    )
+  
+  # Long format data for diseases
+  dis_long <- summary %>%
+    pivot_longer(
+      cols = starts_with("prevalence_"),
+      names_to = "disease_condition",
+      values_to = "prevalence"
+    ) %>%
+    filter(disease_condition %in% c("prevalence_present_disease",
+                                    "prevalence_fast_disease", 
+                                    "prevalence_slow_disease")) %>%
+    select(SPECIES_NAME, disease_condition, prevalence)
+  
+  # Create disease plot
+  dis_plot <- ggplot(dis_long, aes(x = reorder(SPECIES_NAME, prevalence), y = prevalence, fill = disease_condition)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Disease Prevalence (%)",x = "", y = "Prevalence") +
+    scale_fill_manual(
+      values = c("prevalence_present_disease" = "#e6e3a0",
+                 "prevalence_slow_disease" = "#dce4c1", 
+                 "prevalence_fast_disease" = "#a8bf6d"),
+      breaks = c("prevalence_present_disease",
+                 "prevalence_slow_disease",
+                 "prevalence_fast_disease"),
+      labels = c("Present", "Slow, <1 cm", "Fast, >1 cm"),
+      name = NULL
+    ) +
+    scale_y_reverse(limits = c(max(dis_long$prevalence), 0), expand = expansion(mult = c(0, 0))) +
+    theme_Publication(base_size = 16) +
+    theme(
+      axis.title.x = element_blank(),
+      axis.text.y = element_blank(),
+      legend.position = "bottom",
+      axis.ticks = element_blank(),
+      plot.title = element_text(hjust = 0.5)
+    )
+  
+  # Combine the plots
+  combined_plot <- plot_grid(
+    dis_plot,
+  
+    g.mid + theme(plot.margin = margin(r = .5, unit = "cm")), # Adjust middle plot alignment
+    bleach_plot,
+    ncol = 3,  
+    rel_widths = c(1,1,1) # Adjust relative widths for alignment
+  )
+
+  
+    # Save the plot as PNG
+  ggsave("combined_plot.png", plot = combined_plot, width = 15, height = 8, dpi = 300)
+
+  # Print the combined plot
+  print(combined_plot)
+}
+
+
+
+
+
+
+
+```
+
+```{r}
+
+generateCoralPlot <- function(region, selected_year, weightedmeans, om_spp, s_spp, rm_spp, species_list) {
+  
+  selected_year <- as.double(selected_year)
+  
+  print(weightedmeans)
+  
+  a <- weightedmeans %>% 
+    dplyr::select(REGION, YEAR, SPECIES_CD, avDen, CV, SE) %>% 
+    dplyr::rename("SE_avDen" = SE)
+  
+  b <- om_spp %>% 
+    dplyr::mutate(SPECIES_CD = SPECIES_NAME) %>% 
+    dplyr::select(REGION, YEAR, SPECIES_CD, avMort, SE) %>% 
+    dplyr::rename("avMortOld" = avMort,
+                  "SE_avMortOld" = SE)
+  c <- s_spp %>% 
+    dplyr::mutate(SPECIES_CD = SPECIES_NAME) %>% 
+    dplyr::select(REGION, YEAR, SPECIES_CD, avMaxdiam, SE_maxdiam)
+  
+  d <- rm_spp %>% 
+    dplyr::mutate(SPECIES_CD = SPECIES_NAME) %>% 
+    dplyr::select(REGION, YEAR, SPECIES_CD, avMort, SE) %>% 
+    dplyr::rename("avMortRec" = avMort,
+                  "SE_avMortRec" = SE)
+  
+  newdat <- a %>% 
+    dplyr::left_join(., b) %>% 
+    dplyr::left_join(., c) %>% 
+    dplyr::left_join(., d) %>%
+    arrange(desc(avDen)) %>%
+    dplyr::filter(CV < 1) %>%
+    mutate(REGION = region)
+  
+  
+  if (!is.null(species_list) && !is.null(selected_year)) {
+    selected_year <- as.numeric(selected_year)
+    newdat <- newdat %>%
+      dplyr::filter(SPECIES_CD %in% species_list & YEAR == selected_year)
+  }
+  
+  print(newdat)
+  
+  spp_levels <- newdat %>%
+    dplyr::arrange(avDen)
+  
+  spp_levels <- spp_levels$SPECIES_CD
+  
+  newdat <- newdat %>%
+    dplyr::mutate(SPECIES_CD = factor(SPECIES_CD, levels = spp_levels))
+  
+  
+  dens_plot <- ggplot(data = newdat, aes(x = avDen, y = SPECIES_CD)) +
+    geom_point(stat = "identity", size = 3.75) +
+    geom_errorbar(aes(xmin = avDen - SE_avDen, xmax = avDen + SE_avDen, y = SPECIES_CD), width = 0, color = "black") +
+    labs(x = expression(Density ~ (corals/m^{2})), y = "") +
+    theme_light() +
+    theme_Publication(base_size = 20) +
+    theme(axis.text.y = element_text(face = "italic"))
+  
+  om_plot <- ggplot(data = newdat, aes(x = avMortOld, y = SPECIES_CD)) +
+    geom_point(stat = "identity", size = 3.75) +
+    geom_errorbar(aes(xmin = avMortOld - SE_avMortOld, xmax = avMortOld + SE_avMortOld, y = SPECIES_CD), width = 0, color = "black") +
+    labs(x = expression(Old ~ mortality ~ ("%")), y = "") +
+    theme_light() +
+    theme_Publication(base_size = 20) +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank())
+  
+  rm_plot <- ggplot(data = newdat, aes(x = avMortRec, y = SPECIES_CD)) +
+    geom_point(stat = "identity", size = 3.75) +
+    geom_errorbar(aes(xmin = avMortRec - SE_avMortRec, xmax = avMortRec + SE_avMortRec, y = SPECIES_CD), width = 0, color = "black") +
+    labs(x = expression(Recent ~ mortality ~ ("%")), y = "") +
+    theme_light() +
+    theme_Publication(base_size = 20) +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank())
+  
+  size_plot <- ggplot(data = newdat, aes(x = avMaxdiam, y = SPECIES_CD)) +
+    geom_point(stat = "identity", size = 3.75) +
+    geom_errorbar(aes(xmin = avMaxdiam - SE_maxdiam, xmax = avMaxdiam + SE_maxdiam, y = SPECIES_CD), width = 0, color = "black") +
+    labs(x = expression(Maximum ~ diameter ~ (cm)), y = "") +
+    theme_light() +
+    theme_Publication(base_size = 20) +
+    theme(axis.text.y = element_blank(), axis.title.y = element_blank())
+  
+  
+  combined_plot <- egg::ggarrange(dens_plot, om_plot, rm_plot, size_plot, ncol = 4)   
+  
+  print(combined_plot)
+  
+  
+  return(combined_plot)
+  
+}
+
+
+coral_demo <- function(region, region_code, year, species_list, project) {
+  
+  weighted_means <- switch(region,
+                    "SEFCRI" = NCRMP_DRM_SEFCRI_Occ_Den_CV,
+                    "Florida Keys" =NCRMP_DRM_FLK_Occ_Den_CV,
+                    "Tortugas" = NCRMP_Tort_Occ_Den_CV,
+                    "Flower Gardens" = NCRMP_FGBNMS_2013_22_dis_prev_species_region,
+                    "Puerto Rico" = USVI_2023_coral_demographics,
+                    "St Thomas, St John" = USVI_2023_coral_demographics,
+                    "St Croix" = USVI_2023_coral_demographics)
+  
+
+  om <- NCRMP_DRM_calculate_mortality(region = region, project = project)
+
+  om_spp <- om$Domain_est_old_mort_species
+ 
+  rm_spp <- om$Domain_est_rec_mort_species
+
+  s <- NCRMP_DRM_calculate_mean_colony_size(region = region, project = project)
+
+  s_spp <- s$Domain_est_species
+
+  
+
+  plot <- generateCoralPlot(region, year, weighted_means, om_spp, s_spp, rm_spp, species_list)
+  
+
+
+    ggsave("demo_plot.png", plot = plot, width = 15, height = 8, dpi = 300)
+}
+
+
+
+```
+
+```{r}
+
+
+cover_plot <- function(region, samp_year) {
+
+  data_1 <- switch(region,
+                    "Southeast Florida" = NCRMP_SEFCRI_2014_22_cover_region,
+                    "Florida Keys" = NCRMP_DRM_FLK_2014_22_dis_prev_species_region,
+                    "Tortugas" = NCRMP_Tort_Occ_Den_CV,
+                    "Flower Gardens" = NCRMP_FGBNMS_2013_22_dis_prev_species_region,
+                    "Puerto Rico" = USVI_2023_coral_demographics,
+                    "St Thomas, St John" = NCRMP_STTSTJ_2013_23_cover_region,
+                    "St Croix" = USVI_2023_coral_demographics)
+  
+# data_1 = NCRMP_STTSTJ_2013_23_cover_region
+
+
+
+coral_plot <- data_1 %>%
+  filter(cover_group == "HARD CORALS") %>%
+  NCRMP_perform_ttest(
+                           metric1 = 'coral_cover',
+                           metric2 = 'avCvr',
+                           alpha = 0.05,
+                           n_years = 6,
+                           return_dataframe = TRUE) %>%
+  mutate(
+    Significance = 
+      if_else(
+        #...if YEAR is earliest Year in table (ex. 2014),Significance = FALSE
+        YEAR == min(YEAR), FALSE, 
+        #...otherwise...
+        if_else(
+          #...if the previous year's avg. cover is in the current LCI/UCI range (or vice verse), Significance = FALSE...
+          (lag(avCvr)>= LCI & lag(avCvr)<= UCI) |
+            (avCvr >= lag(LCI) & avCvr <= lag(UCI)),  
+          FALSE,
+          #...else (i.e. the avg cover is outside of the LCI/UCI range), Significance = TRUE
+          TRUE 
+        )
+      ),
+    Label = letters[cumsum(Significance == TRUE)+ 1],
+    #Factorize Year
+    YEAR = as.factor(as.character(YEAR)),
+    facet_label = "Hard corals"
+  ) %>% mutate(Type = "Coral")
+    
+macroalgae_plot <- data_1 %>%
+  filter(cover_group == "MACROALGAE") %>%
+  NCRMP_perform_ttest(
+                           metric1 = 'macroalgae_cover',
+                           metric2 = 'avCvr',
+                           alpha = 0.05,
+                           n_years = 6,
+                           return_dataframe = TRUE) %>%
+  mutate(
+    Significance = 
+      if_else(
+        #...if YEAR is earliest Year in table (ex. 2014),Significance = FALSE
+        YEAR == min(YEAR), FALSE, 
+        #...otherwise...
+        if_else(
+          #...if the previous year's avg. cover is in the current LCI/UCI range (or vice verse), Significance = FALSE...
+          (lag(avCvr)>= LCI & lag(avCvr)<= UCI) |
+            (avCvr >= lag(LCI) & avCvr <= lag(UCI)),  
+          FALSE,
+          #...else (i.e. the avg cover is outside of the LCI/UCI range), Significance = TRUE
+          TRUE 
+        )
+      ),
+    Label = letters[cumsum(Significance == TRUE)+ 1],
+    #Factorize Year
+    YEAR = as.factor(as.character(YEAR)),
+    facet_label = "Macroalage"
+  ) %>% mutate(Type = "Macroalgae")
+
+
+print(coral_plot)
+print(macroalgae_plot)
+coral_macro_plot <- bind_rows(coral_plot, macroalgae_plot) %>%
+    ggplot(aes(x = YEAR, y = avCvr,
+               group = interaction(Type, REGION),  
+               color = REGION,                     
+               linetype = Type,                  
+               label = Label)) +
+  geom_point(size = 2, color = "black") +
+  geom_line(linewidth = 2, color = "black") +
+  geom_errorbar(aes(x = YEAR, 
+                    ymin = avCvr - SE, 
+                    ymax = avCvr + SE), 
+                width = .1, color = "black") +
+    geom_text(aes(label = Label),
+            vjust = -1,
+            size = 5,
+            color = "black",
+            fontface = "bold",
+            check_overlap = TRUE
+            )
+  labs(x = "Year", 
+       y = "Cover (%)", 
+       title = region) +
+  scale_x_discrete(limit = as.character(c(2014:samp_year))) +
+  theme_Publication(base_size = 20)  +
+
+  
+print(coral_macro_plot)
+  
+    ggsave("coral_macro_plot.png", plot = coral_macro_plot, width = 15, height = 8, dpi = 300)
+
+
+}
+
+
+#user pick region
+PICK_REGION_CODE <- "Tortugas"
+YEAR <- 2022
+cover_plot(PICK_REGION, YEAR)
+
+```
+
+```{r}
+
+#user pick region
+PICK_REGION_CODE <- "Tortugas"
+YEAR <- 2022
+cover_plot(PICK_REGION, YEAR)
+
+
+
+
+
+
+
+SPECIES_LIST <- c("Pseudodiploria strigosa", "Mycetophyllia aliciae", "Siderastrea radians", "Stephanocoenia intersepta", "Agaricia humilis", "Eusmilia fastigiata", "Agaricia lamarcki", "Diploria labyrinthiformis", "Porites astreoides", "Dichocoenia stokesii", "Acropora cervicornis", "Colpophyllia natans")
+
+cover_plot(PICK_REGION, YEAR)
+coral_demo(region = PICK_REGION_CODE, year = YEAR, species_list = SPECIES_LIST, project = "NCRMP") 
+
+```
+
+```         
+```
+
+```{}
+```

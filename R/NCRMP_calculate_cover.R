@@ -373,9 +373,9 @@ NCRMP_calculate_cover <- function(region, project = "NULL"){
 
     return(output)
 }
+s
 
 
-
-r <- NCRMP_calculate_cover(region = "GOM", project = "NCRMP")
+r <- NCRMP_calculate_cover(region = "SEFCRI", project = "NCRMP")
 print(r)
 
