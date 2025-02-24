@@ -5,41 +5,33 @@ format: html
 editor: visual
 ---
 
-```{r}
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(cowplot)
-library(grid)
-library(ggthemes)
-library(extrafont)
-library(ncrmp.benthics.analysis)
-library(grid)
-library(ggthemes)
-library(extrafont)
-library(shinydashboard)
-library(shiny)
-library(plotly)
-library(tidyverse)
-library(ncrmp.benthics.analysis)
-library(ggplot2)
-library(cowplot)
-library(gridExtra)
-library(egg)
-library(leaflet)
-library(leaflet.extras)
-```
+title: "Region Picker"
+output: 
+  html_document:
+    self_contained: true
+    toc: true
+---
+## Choose a Region
 
-```{r}
-#| panel: sidebar
+Select a region from the dropdown:
 
-selectInput('region', 'Pick Region',choices = c("SEFCRI", "PRICO") )
-selectInput('ycol', 'Y Variable', vars, selected = vars[[2]])
-numericInput('clusters', 'Cluster count', 3, min = 1, max = 9)
+```{html}
+<select id="region-dropdown">
+  <option value="SEFCRI">SEFCRI</option>
+  <option value="PRICO">PRICO</option>
+</select>
 
-renderText({
-  paste("You selected:", input$region)
-})
+<button onclick="showSelection()">Submit</button>
 
+<p id="selected-region"></p>
 
-```
+<script>
+  function showSelection() {
+    // Get the selected value from the dropdown
+    var selectedRegion = document.getElementById("region-dropdown").value;
+    
+    // Display the selected region in the paragraph
+    document.getElementById("selected-region").innerText = "You selected: " + selectedRegion;
+  }
+</script>
+
